@@ -7,6 +7,14 @@ from bpy.types import (Panel,
                        Menu,
                        Operator,
                        PropertyGroup,)
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       IntProperty,
+                       FloatProperty,
+                       FloatVectorProperty,
+                       EnumProperty,
+                       PointerProperty,
+                       )
 
 def distance(p1, p2):
     #calculate 3D distance
@@ -14,6 +22,10 @@ def distance(p1, p2):
         (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2 + (p2[2] - p1[2])**2
         )
     return d
+
+def filter_callback(self, object):
+    if object.type == "EMPTY":
+        return object.name in self.my_collection.objects.keys() 
 
 class Globals():
     #store global variables
@@ -44,6 +56,7 @@ g = Globals()
 #instantiate global variables
 
 def do_depsgraph_update(dummy):
+    collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
     #represented as a "point" for ease of distance calculations.
     #For now, the light is hard-coded
@@ -52,11 +65,13 @@ def do_depsgraph_update(dummy):
         round(bpy.data.objects["Area"].rotation_euler[1],2),
         round(bpy.data.objects["Area"].rotation_euler[2],2)
         ]  
+
     
     #cycle through the light_rotation array to see if the current
     #rotation matches any entry 
     i = -1
     for entry in g.light_rot_array:
+        print(entry)
         i +=1
         #get distances from active point to other points:
         g.distances[i] = round(distance(g.active_point, entry),6)
@@ -199,6 +214,13 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.operator("wm.toggle", icon = "UV_SYNC_SELECT", depress = not g.placeable, text = g.placeable_text)
         subrow = layout.row(align=True)
         subrow.operator("wm.clear_recent", icon = "TRACKING_CLEAR_BACKWARDS")
+        
+        col = layout.column()
+        col.prop(scene, "my_collection")
+        
+        col = layout.column()
+        col.enabled = True if scene.my_collection else False
+        col.prop(scene, "empty_objects")
 
 def register():
     from bpy.utils import register_class
@@ -207,7 +229,15 @@ def register():
     register_class(ClearEFrame)
     register_class(ClearLast)
     register_class(TogglePreview)
-        
+    
+    bpy.types.Scene.my_collection = PointerProperty(
+        name="Edits Collection",
+        type=bpy.types.Collection)
+    bpy.types.Scene.empty_objects = PointerProperty(
+        name="Edit Empty",
+        type=bpy.types.Object,
+        poll=filter_callback)
+
 def unregister():
     from bpy.utils import unregister_class
     unregister_class(OBJECT_PT_EFramePanel)
@@ -215,11 +245,18 @@ def unregister():
     unregister_class(ClearEFrame)
     unregister_class(ClearLast)
     unregister_class(TogglePreview)
+    
+    del bpy.types.Scene.my_collection
+    del bpy.types.Collection.empty_objects
+
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
         
     if do_depsgraph_update in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.remove(do_depsgraph_update)
-
 if __name__ == "__main__":
     register()
+
+    
+
+
