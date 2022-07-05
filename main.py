@@ -35,9 +35,9 @@ class Globals():
         round(bpy.data.objects["Area"].rotation_euler[2],2)
         ]
     try:
-        light_rot_array = json.loads(bpy.data.objects["test"]["light_rot"])
+        light_rot_array = json.loads(bpy.data.objects["EditA"]["light_rot"])
         distances = [0] * len(light_rot_array)
-        empty_pos_array = json.loads(bpy.data.objects["test"]["empty_pos"])
+        empty_pos_array = json.loads(bpy.data.objects["EditA"]["empty_pos"])
         inverse_distances = [0] * len(light_rot_array)
         multiplied_distances = [0] * len(light_rot_array)
     except:
@@ -51,6 +51,10 @@ class Globals():
     final_pos = []
     placeable = False
     placeable_text = "Current: Realtime Preview"
+    
+    #experimental - create another array for edit > eframe coordination
+    #NO save and load functionality currently
+    eframe_to_edit = []
 
 g = Globals()
 #instantiate global variables
@@ -71,7 +75,6 @@ def do_depsgraph_update(dummy):
     #rotation matches any entry 
     i = -1
     for entry in g.light_rot_array:
-        print(entry)
         i +=1
         #get distances from active point to other points:
         g.distances[i] = round(distance(g.active_point, entry),6)
@@ -103,12 +106,12 @@ def do_depsgraph_update(dummy):
     g.final_pos = final_pos
     print(g.placeable, g.final_pos)
     if not g.placeable:
-        bpy.data.objects["test"].location = g.final_pos
+        bpy.data.objects["EditA"].location = g.final_pos
     #end LERP
     
     #save globals to a custom property
-    bpy.data.objects["test"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-    bpy.data.objects["test"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+    bpy.data.objects["EditA"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+    bpy.data.objects["EditA"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -119,15 +122,21 @@ class AddEFrame(Operator):
     bl_label = "Add EFrame"
 
     def execute(self, context):
+        
+        #experimental - add active edit to g.eframe_to_edit
+        g.eframe_to_edit.append(bpy.data.scenes["Scene"].empty_objects)
+        print(g.eframe_to_edit)
+        print(g.light_rot_array)
+        
         g.light_rot_array.append([
         round(bpy.data.objects["Area"].rotation_euler[0],4),
         round(bpy.data.objects["Area"].rotation_euler[1],4),
         round(bpy.data.objects["Area"].rotation_euler[2],4)
         ])
         g.empty_pos_array.append([
-        round(bpy.data.objects["test"].location[0],4),
-        round(bpy.data.objects["test"].location[1],4),
-        round(bpy.data.objects["test"].location[2],4)
+        round(bpy.data.objects["EditA"].location[0],4),
+        round(bpy.data.objects["EditA"].location[1],4),
+        round(bpy.data.objects["EditA"].location[2],4)
         ])
         #by adding to the end of both arrays, we know that 
         #corresponding rotation and position values will share
@@ -151,6 +160,10 @@ class ClearEFrame(Operator):
         g.distances = []
         g.inverse_distances = []
         g.multiplied_distances = []
+        
+        #experimental
+        g.eframe_to_edit = []
+        
         return {'FINISHED'}
 
 class RemoveLast(Operator):
