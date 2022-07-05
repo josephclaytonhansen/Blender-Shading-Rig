@@ -216,10 +216,12 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.operator("wm.clear_recent", icon = "TRACKING_CLEAR_BACKWARDS")
         
         col = layout.column()
+        col.label(text="Edits collection")
         col.prop(scene, "my_collection")
         
         col = layout.column()
         col.enabled = True if scene.my_collection else False
+        col.label(text="Active edit")
         col.prop(scene, "empty_objects")
         
         col = layout.column()
@@ -229,13 +231,23 @@ class OBJECT_PT_EFramePanel(Panel):
         
         col = layout.column()
         subrow = layout.row(align=True)
-        subrow.label(icon = "META_DATA")
-        subrow.prop(scene, "edit_blend")
+        subrow.label(icon="SHADING_BBOX")
+        subrow.prop(scene, "scale")
         
         col = layout.column()
         subrow = layout.row(align=True)
-        subrow.label(icon = "FORCE_CHARGE")
+        subrow.label(icon="IMAGE_ALPHA")
+        subrow.prop(scene, "threshold")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "FORCE_CHARGE", text = "Direction")
         subrow.prop(scene, "direction")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "UV", text = "Coordinates")
+        subrow.prop(scene, "coords")
 
 def register():
     from bpy.utils import register_class
@@ -246,15 +258,18 @@ def register():
     register_class(TogglePreview)
     
     bpy.types.Scene.my_collection = PointerProperty(
-        name="Edits Collection",
+        name="",
         type=bpy.types.Collection)
     bpy.types.Scene.empty_objects = PointerProperty(
-        name="Edit Empty",
+        name="",
         type=bpy.types.Object,
         poll=filter_callback)
     bpy.types.Scene.edit_strength = FloatProperty(name = "Edit Strength", max = 99, min = -99, default = 50)
     bpy.types.Scene.edit_blend = FloatProperty(name = "Edit Blend", max = 99, min = -99, default = 50)
-    bpy.types.Scene.direction = IntProperty(name = "Direction", max = 1, min = 0, default = 0)
+    bpy.types.Scene.direction = IntProperty(name = "Light | Shadow", max = 1, min = 0, default = 0)
+    bpy.types.Scene.coords = IntProperty(name = "Object | UV ", max = 1, min = 0, default = 0)
+    bpy.types.Scene.scale = FloatProperty(name = "Edits Scale", max = 10, min = 0, default = 0)
+    bpy.types.Scene.threshold = FloatProperty(name = "Threshold", max = 10, min = 0, default = 0.1)
 
 def unregister():
     from bpy.utils import unregister_class
