@@ -221,6 +221,21 @@ class OBJECT_PT_EFramePanel(Panel):
         col = layout.column()
         col.enabled = True if scene.my_collection else False
         col.prop(scene, "empty_objects")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "META_ELLIPSOID")
+        subrow.prop(scene, "edit_strength")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "META_DATA")
+        subrow.prop(scene, "edit_blend")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "FORCE_CHARGE")
+        subrow.prop(scene, "direction")
 
 def register():
     from bpy.utils import register_class
@@ -237,6 +252,9 @@ def register():
         name="Edit Empty",
         type=bpy.types.Object,
         poll=filter_callback)
+    bpy.types.Scene.edit_strength = FloatProperty(name = "Edit Strength", max = 99, min = -99, default = 50)
+    bpy.types.Scene.edit_blend = FloatProperty(name = "Edit Blend", max = 99, min = -99, default = 50)
+    bpy.types.Scene.direction = IntProperty(name = "Direction", max = 1, min = 0, default = 0)
 
 def unregister():
     from bpy.utils import unregister_class
@@ -248,6 +266,8 @@ def unregister():
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
+    del bpy.types.Scene.edit_strength
+    del bpy.types.Scene.edit_blend
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
