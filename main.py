@@ -102,11 +102,11 @@ def do_depsgraph_update(dummy):
         #get distances from active point to other points:
             g.distances[i] = round(distance(g.active_point, entry),6)
             
-        #invert distances:
-        try:
-            g.inverse_distances[i] = round((1/distance(g.active_point, entry)),6)
-        except:
-            g.inverse_distances[i] = 0
+            #invert distances:
+            try:
+                g.inverse_distances[i] = round((1/distance(g.active_point, entry)),6)
+            except:
+                g.inverse_distances[i] = 0
         
         #calculate sum of total inverse distances:
         g.total_inverse_distances = sum(g.inverse_distances)
