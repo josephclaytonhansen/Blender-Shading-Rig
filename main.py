@@ -60,6 +60,12 @@ g = Globals()
 #instantiate global variables
 
 def do_depsgraph_update(dummy):
+    
+    #If an edit is selected, the active edit should be that edit
+    #This clears! 
+    if bpy.context.active_object.type == "EMPTY":
+        bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
+    
     collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
     #represented as a "point" for ease of distance calculations.
@@ -74,10 +80,28 @@ def do_depsgraph_update(dummy):
     #cycle through the light_rotation array to see if the current
     #rotation matches any entry 
     i = -1
+    
+    #experimental
+    working_empty_pos_array = []
+    working_light_rot_array = []
+    
     for entry in g.light_rot_array:
+        
+        #experimental
+        #This clears, in a sense- if you set eframes for EditA, and select EditA, editA will move on the corresponding eframes.
+        #It works on an individual basis, just not for all edits at once. 
+        if bpy.data.scenes["Scene"].empty_objects == g.eframe_to_edit[i]:
+            working_empty_pos_array.append(g.empty_pos_array[i])
+            working_light_rot_array.append(g.light_rot_array[i])
+            print(bpy.data.scenes["Scene"].empty_objects, working_empty_pos_array, working_light_rot_array)
+        
         i +=1
+        
+        #experimental
+        if bpy.data.scenes["Scene"].empty_objects == g.eframe_to_edit[i]:
         #get distances from active point to other points:
-        g.distances[i] = round(distance(g.active_point, entry),6)
+            g.distances[i] = round(distance(g.active_point, entry),6)
+            
         #invert distances:
         try:
             g.inverse_distances[i] = round((1/distance(g.active_point, entry)),6)
@@ -96,7 +120,7 @@ def do_depsgraph_update(dummy):
 
     entry_index = -1
 
-    for entry in g.empty_pos_array:
+    for entry in working_empty_pos_array:
         entry_index += 1
         axis_index = -1
 
@@ -106,12 +130,15 @@ def do_depsgraph_update(dummy):
     g.final_pos = final_pos
     print(g.placeable, g.final_pos)
     if not g.placeable:
-        bpy.data.objects["EditA"].location = g.final_pos
+        bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location = g.final_pos
     #end LERP
     
     #save globals to a custom property
-    bpy.data.objects["EditA"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-    bpy.data.objects["EditA"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+    
+    #This no longer works!!! 
+    
+#    bpy.data.objects["EditA"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+#    bpy.data.objects["EditA"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -134,9 +161,9 @@ class AddEFrame(Operator):
         round(bpy.data.objects["Area"].rotation_euler[2],4)
         ])
         g.empty_pos_array.append([
-        round(bpy.data.objects["EditA"].location[0],4),
-        round(bpy.data.objects["EditA"].location[1],4),
-        round(bpy.data.objects["EditA"].location[2],4)
+        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[0],4),
+        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[1],4),
+        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[2],4)
         ])
         #by adding to the end of both arrays, we know that 
         #corresponding rotation and position values will share
