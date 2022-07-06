@@ -65,7 +65,6 @@ def do_depsgraph_update(dummy):
     #This clears! 
     if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select:
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
-            
     
     collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
@@ -213,6 +212,41 @@ class SetSmoothness(Operator):
         
         return {'FINISHED'}
 
+class SetScale(Operator):
+    bl_idname = "wm.set_edit_scale"
+    bl_label = "Set"
+    def execute(self,context):
+        #experimental
+        #currently edit names and fields are hard-coded, this is bad!!! 
+        #Not sure what to do about it though. 
+        
+        #elif is cheaper than if so...
+        if bpy.data.scenes["Scene"].empty_objects.name == "EditA":
+            bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditB":
+            bpy.data.node_groups["EC_B"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditC":
+            bpy.data.node_groups["EC_C"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditD":
+            bpy.data.node_groups["EC_D"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditE":
+            bpy.data.node_groups["EC_E"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditF":
+            bpy.data.node_groups["EC_F"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditG":
+            bpy.data.node_groups["EC_G"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditH":
+            bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+        
+        return {'FINISHED'}
+
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
@@ -229,18 +263,6 @@ class ClearEFrame(Operator):
         
         return {'FINISHED'}
 
-class RemoveLast(Operator):
-    """Clear all relationships between light angle and empty position"""
-    bl_idname = "wm.no_eframe"
-    bl_label = "Clear EFrames"
-    def execute(self, context):
-        g.light_rot_array = []
-        g.empty_pos_array = []
-        g.distances = []
-        g.inverse_distances = []
-        g.multiplied_distances = []
-        return {'FINISHED'} 
-
 class TogglePreview(Operator):
     """Toggle empty between realtime preview and placement"""
     bl_idname = "wm.toggle"
@@ -251,19 +273,6 @@ class TogglePreview(Operator):
             g.placeable_text = "Current: Placement"
         else:
             g.placeable_text = "Current: Realtime Preview"
-        return {'FINISHED'}
-
-class ClearLast(Operator):
-    """Remove most recent eframe"""
-    bl_idname = "wm.clear_recent"
-    bl_label = "Delete Last"
-    def execute(self, context):
-        g.light_rot_array.pop()
-        g.empty_pos_array.pop()
-        g.distances.pop()
-        g.inverse_distances.pop()
-        g.multiplied_distances.pop()
-        
         return {'FINISHED'}
     
 class OBJECT_PT_EFramePanel(Panel):
@@ -288,8 +297,6 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.operator("wm.no_eframe", icon = "TRASH")
         subrow = layout.row(align=True)
         subrow.operator("wm.toggle", icon = "UV_SYNC_SELECT", depress = not g.placeable, text = g.placeable_text)
-        subrow = layout.row(align=True)
-        subrow.operator("wm.clear_recent", icon = "TRACKING_CLEAR_BACKWARDS")
         
         layout.separator()
         
@@ -326,6 +333,11 @@ class OBJECT_PT_EFramePanel(Panel):
         
         col = layout.column()
         subrow = layout.row(align=True)
+        subrow.label(icon="HOLDOUT_ON")
+        subrow.prop(scene, "mask")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
         subrow.label(icon="IMAGE_ALPHA")
         subrow.prop(scene, "threshold")
         
@@ -349,7 +361,13 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.label(icon = "SHARPCURVE")
         subrow.prop(scene, "sharpness")
-        subrow.operator("wm.set_edit_parameters")
+        subrow.operator("wm.set_edit_smoothness")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "SHADING_BBOX")
+        subrow.prop(scene, "escale")
+        subrow.operator("wm.set_edit_scale")
         
 
 def register():
@@ -357,9 +375,9 @@ def register():
     register_class(OBJECT_PT_EFramePanel)
     register_class(AddEFrame)
     register_class(ClearEFrame)
-    register_class(ClearLast)
     register_class(TogglePreview)
     register_class(SetSmoothness)
+    register_class(SetScale)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -372,26 +390,30 @@ def register():
     
     bpy.types.Scene.auto_select = BoolProperty(name = "in placement mode", default = True)
 
-    bpy.types.Scene.sharpness = FloatProperty(name = "Smoothness", max = 1, min = 0, default = 1)
+    bpy.types.Scene.sharpness = FloatProperty(name = "Smooth", max = 1, min = 0, default = 1)
     
     bpy.types.Scene.direction = IntProperty(name = "Light | Shadow", max = 1, min = 0, default = 0)
     bpy.types.Scene.coords = IntProperty(name = "Object | UV ", max = 1, min = 0, default = 0)
     bpy.types.Scene.scale = FloatProperty(name = "Edits Scale", max = 10, min = 0, default = 0)
     bpy.types.Scene.threshold = FloatProperty(name = "Threshold", max = 10, min = 0, default = 0.1)
+    bpy.types.Scene.mask = FloatProperty(name = "Mask", max = 10, min = 1, default = 7.5)
+    bpy.types.Scene.escale = FloatProperty(name = "Scale", max = 10, min = .01, default = 1)
 
 def unregister():
     from bpy.utils import unregister_class
     unregister_class(OBJECT_PT_EFramePanel)
     unregister_class(AddEFrame)
     unregister_class(ClearEFrame)
-    unregister_class(ClearLast)
     unregister_class(TogglePreview)
     unregister_class(SetSmoothness)
+    unregister_class(SetScale)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
     del bpy.types.Scene.edit_strength
     del bpy.types.Scene.sharpness
+    del bpy.types.Scene.mask
+    del bpy.types.Scene.escale
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
