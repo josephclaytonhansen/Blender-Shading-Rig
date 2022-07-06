@@ -63,8 +63,9 @@ def do_depsgraph_update(dummy):
     
     #If an edit is selected, the active edit should be that edit
     #This clears! 
-    if bpy.context.active_object.type == "EMPTY":
+    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select:
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
+            
     
     collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
@@ -177,6 +178,41 @@ class AddEFrame(Operator):
         #Same for the inverses
         return {'FINISHED'}
 
+class SetSmoothness(Operator):
+    bl_idname = "wm.set_edit_smoothness"
+    bl_label = "Set"
+    def execute(self,context):
+        #experimental
+        #currently edit names and fields are hard-coded, this is bad!!! 
+        #Not sure what to do about it though. 
+        
+        #elif is cheaper than if so...
+        if bpy.data.scenes["Scene"].empty_objects.name == "EditA":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.002"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditB":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.003"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditC":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.005"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditD":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.006"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditE":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.008"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditF":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.009"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditG":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.010"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+            
+        elif bpy.data.scenes["Scene"].empty_objects.name == "EditH":
+            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.011"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+        
+        return {'FINISHED'}
+
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
@@ -255,14 +291,28 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.operator("wm.clear_recent", icon = "TRACKING_CLEAR_BACKWARDS")
         
+        layout.separator()
+        
         col = layout.column()
-        col.label(text="Edits collection")
-        col.prop(scene, "my_collection")
+        subrow = layout.row(align=True)
+        subrow.label(text="Edits collection")
+        subrow.prop(scene, "my_collection")
         
         col = layout.column()
         col.enabled = True if scene.my_collection else False
-        col.label(text="Active edit")
-        col.prop(scene, "empty_objects")
+        subrow = layout.row(align=True)
+        subrow.label(text="Active edit")
+        subrow.prop(scene, "empty_objects")
+        
+        layout.separator()
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(text = "Set selected edit to active:")
+        subrow = layout.row(align=True)
+        subrow.prop(scene, "auto_select")
+        
+        layout.separator()
         
         col = layout.column()
         subrow = layout.row(align=True)
@@ -288,6 +338,19 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.label(icon = "UV", text = "Coordinates")
         subrow.prop(scene, "coords")
+        
+        layout.separator()
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(text = "Individual controls")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "SHARPCURVE")
+        subrow.prop(scene, "sharpness")
+        subrow.operator("wm.set_edit_parameters")
+        
 
 def register():
     from bpy.utils import register_class
@@ -296,6 +359,7 @@ def register():
     register_class(ClearEFrame)
     register_class(ClearLast)
     register_class(TogglePreview)
+    register_class(SetSmoothness)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -304,8 +368,12 @@ def register():
         name="",
         type=bpy.types.Object,
         poll=filter_callback)
-    bpy.types.Scene.edit_strength = FloatProperty(name = "Edit Strength", max = 99, min = -99, default = 50)
-    bpy.types.Scene.edit_blend = FloatProperty(name = "Edit Blend", max = 99, min = -99, default = 50)
+    bpy.types.Scene.edit_strength = FloatProperty(name = "Edits Strength", max = 99, min = -99, default = 50)
+    
+    bpy.types.Scene.auto_select = BoolProperty(name = "in placement mode", default = True)
+
+    bpy.types.Scene.sharpness = FloatProperty(name = "Smoothness", max = 1, min = 0, default = 1)
+    
     bpy.types.Scene.direction = IntProperty(name = "Light | Shadow", max = 1, min = 0, default = 0)
     bpy.types.Scene.coords = IntProperty(name = "Object | UV ", max = 1, min = 0, default = 0)
     bpy.types.Scene.scale = FloatProperty(name = "Edits Scale", max = 10, min = 0, default = 0)
@@ -318,11 +386,12 @@ def unregister():
     unregister_class(ClearEFrame)
     unregister_class(ClearLast)
     unregister_class(TogglePreview)
+    unregister_class(SetSmoothness)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
     del bpy.types.Scene.edit_strength
-    del bpy.types.Scene.edit_blend
+    del bpy.types.Scene.sharpness
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
