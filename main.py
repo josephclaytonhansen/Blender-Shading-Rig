@@ -206,6 +206,19 @@ class SetScale(Operator):
                 bpy.data.node_groups[g.edit_groups2[i]].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
         
         return {'FINISHED'}
+    
+
+class SetStretch(Operator):
+    bl_idname = "wm.set_edit_stretch"
+    bl_label = "Set"
+    def execute(self,context):
+        
+        for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.node_groups[g.edit_groups2[i]].nodes["Math.003"].inputs[1].default_value = bpy.data.scenes["Scene"].estretch
+        
+        return {'FINISHED'}
+
 
 class SetName(Operator):
     bl_idname = "wm.set_edit_name"
@@ -348,6 +361,12 @@ class OBJECT_PT_EFramePanel(Panel):
         
         col = layout.column()
         subrow = layout.row(align=True)
+        subrow.label(icon = "FIXED_SIZE")
+        subrow.prop(scene, "estretch")
+        subrow.operator("wm.set_edit_stretch")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
         subrow.label(icon = "SYNTAX_OFF")
         subrow.prop(scene, "ename")
         subrow.operator("wm.set_edit_name")
@@ -362,6 +381,7 @@ def register():
     register_class(SetSmoothness)
     register_class(SetScale)
     register_class(SetName)
+    register_class(SetStretch)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -382,6 +402,7 @@ def register():
     bpy.types.Scene.threshold = FloatProperty(name = "Threshold", max = 10, min = 0, default = 0.1)
     bpy.types.Scene.mask = FloatProperty(name = "Mask", max = 10, min = 1, default = 7.5)
     bpy.types.Scene.escale = FloatProperty(name = "Scale", max = 10, min = .01, default = 1)
+    bpy.types.Scene.estretch = FloatProperty(name = "Stretch", max = 10, min = .01, default = 1)
     bpy.types.Scene.ename = StringProperty(name = "")
 
 def unregister():
@@ -393,6 +414,7 @@ def unregister():
     unregister_class(SetSmoothness)
     unregister_class(SetScale)
     unregister_class(SetName)
+    unregister_class(SetStretch)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
@@ -401,6 +423,7 @@ def unregister():
     del bpy.types.Scene.mask
     del bpy.types.Scene.escale
     del bpy.types.Scene.ename
+    del bpy.types.Scene.estretch
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
