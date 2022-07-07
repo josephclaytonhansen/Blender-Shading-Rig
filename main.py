@@ -27,6 +27,9 @@ def distance(p1, p2):
 class Globals():
     #experimental - store names in array so they can be changed 
     edit_names = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
+    edit_groups = ["Group.002", "Group.003", "Group.005", "Group.006", "Group.008", "Group.009", "Group.010", "Group.011"]
+    edit_groups2 = ["EC_A", "EC_B", "EC_C", "EC_D", "EC_E", "EC_F", "EC_G", "EC_H"]
+    edit_indices = [0,1,2,3,4,5,6,7]
     
     #store global variables
     active_point = [
@@ -186,34 +189,10 @@ class SetSmoothness(Operator):
     bl_idname = "wm.set_edit_smoothness"
     bl_label = "Set"
     def execute(self,context):
-        #experimental
-        #currently fields are hard-coded, this is bad!!! 
-        #Not sure what to do about it though. 
         
-        #elif is cheaper than if so...
-        if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[0]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.002"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[1]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.003"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[2]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.005"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[3]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.006"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[4]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.008"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[5]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.009"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[6]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.010"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[7]:
-            bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.011"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
+        for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.node_groups["EDIT_SHADING_INNER"].nodes[g.edit_groups[i]].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
         
         return {'FINISHED'}
 
@@ -221,34 +200,10 @@ class SetScale(Operator):
     bl_idname = "wm.set_edit_scale"
     bl_label = "Set"
     def execute(self,context):
-        #experimental
-        #currently fields are hard-coded, this is bad!!! 
-        #Not sure what to do about it though. 
         
-        #elif is cheaper than if so...
-        if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[0]:
-            bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[1]:
-            bpy.data.node_groups["EC_B"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[2]:
-            bpy.data.node_groups["EC_C"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[3]:
-            bpy.data.node_groups["EC_D"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[4]:
-            bpy.data.node_groups["EC_E"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[5]:
-            bpy.data.node_groups["EC_F"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[6]:
-            bpy.data.node_groups["EC_G"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
-            
-        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[7]:
-            bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+        for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.node_groups[g.edit_groups2[i]].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
         
         return {'FINISHED'}
 
@@ -262,7 +217,8 @@ class SetName(Operator):
             bpy.data.scenes["Scene"].empty_objects.name = bpy.data.scenes["Scene"].ename
             print(g.edit_names)
         else:
-            print("Name already in use")
+            print()
+            self.report({'ERROR'}, "Edit name already in use")
         
         return {'FINISHED'}
 
