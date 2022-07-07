@@ -28,9 +28,10 @@ class Globals():
     #experimental - store names in array so they can be changed 
     edit_names = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
     edit_groups = ["Group.002", "Group.003", "Group.005", "Group.006", "Group.008", "Group.009", "Group.010", "Group.011"]
+    
     edit_groups2 = ["EC_A", "EC_B", "EC_C", "EC_D", "EC_E", "EC_F", "EC_G", "EC_H"]
     edit_indices = [0,1,2,3,4,5,6,7]
-    rotate_groups = ["Edit.013", "Edit.014","Edit.012", "Edit.011", "Edit.005", "Edit.008", "Edit.009", "Edit.010"]
+    rotate_groups = ["Edit.013", "Edit.014","Edit.012", "Edit.011", "Edit.015","Edit.008", "Edit.009","Edit.010"]
     
     #store global variables
     active_point = [
@@ -234,6 +235,17 @@ class SetRotate(Operator):
         
         return {'FINISHED'}
 
+class SetMask(Operator):
+    bl_idname = "wm.set_edit_mask"
+    bl_label = "Set"
+    def execute(self,context):
+        
+        for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.node_groups[g.rotate_groups[i]].nodes["ColorRamp"].color_ramp.elements[1].position = bpy.data.scenes["Scene"].mask / 10
+        
+        return {'FINISHED'}
+
 
 class SetName(Operator):
     bl_idname = "wm.set_edit_name"
@@ -343,11 +355,6 @@ class OBJECT_PT_EFramePanel(Panel):
             
             col = layout.column()
             subrow = layout.row(align=True)
-            subrow.label(icon="HOLDOUT_ON")
-            subrow.prop(scene, "mask")
-            
-            col = layout.column()
-            subrow = layout.row(align=True)
             subrow.label(icon="IMAGE_ALPHA")
             subrow.prop(scene, "threshold")
             
@@ -388,6 +395,12 @@ class OBJECT_PT_EFramePanel(Panel):
             
             col = layout.column()
             subrow = layout.row(align=True)
+            subrow.label(icon="HOLDOUT_ON")
+            subrow.prop(scene, "mask")
+            subrow.operator("wm.set_edit_mask")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
             subrow.label(icon = "DRIVER_ROTATIONAL_DIFFERENCE")
             subrow.prop(scene, "erotate")
             subrow.operator("wm.set_edit_rotate")
@@ -410,6 +423,7 @@ def register():
     register_class(SetName)
     register_class(SetStretch)
     register_class(SetRotate)
+    register_class(SetMask)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -447,6 +461,7 @@ def unregister():
     unregister_class(SetName)
     unregister_class(SetStretch)
     unregister_class(SetRotate)
+    unregister_class(SetMask)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
