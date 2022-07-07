@@ -30,6 +30,7 @@ class Globals():
     edit_groups = ["Group.002", "Group.003", "Group.005", "Group.006", "Group.008", "Group.009", "Group.010", "Group.011"]
     edit_groups2 = ["EC_A", "EC_B", "EC_C", "EC_D", "EC_E", "EC_F", "EC_G", "EC_H"]
     edit_indices = [0,1,2,3,4,5,6,7]
+    rotate_groups = ["Edit.013", "Edit.014","Edit.012", "Edit.011", "Edit.005", "Edit.008", "Edit.009", "Edit.010"]
     
     #store global variables
     active_point = [
@@ -71,7 +72,9 @@ def do_depsgraph_update(dummy):
     
     #If an edit is selected, the active edit should be that edit
     #This clears! 
-    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select:
+    selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
+    print(selected)
+    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
     
     collection = bpy.data.scenes["Scene"].my_collection
@@ -218,6 +221,18 @@ class SetStretch(Operator):
                 bpy.data.node_groups[g.edit_groups2[i]].nodes["Math.003"].inputs[1].default_value = bpy.data.scenes["Scene"].estretch
         
         return {'FINISHED'}
+    
+
+class SetRotate(Operator):
+    bl_idname = "wm.set_edit_rotate"
+    bl_label = "Set"
+    def execute(self,context):
+        
+        for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.node_groups[g.rotate_groups[i]].nodes["Mapping.001"].inputs[2].default_value[0]= bpy.data.scenes["Scene"].erotate / 62.8
+        
+        return {'FINISHED'}
 
 
 class SetName(Operator):
@@ -309,67 +324,79 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
         
-        layout.separator()
-        
         col = layout.column()
         subrow = layout.row(align=True)
-        subrow.label(icon = "META_ELLIPSOID")
-        subrow.prop(scene, "edit_strength")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon="SHADING_BBOX")
-        subrow.prop(scene, "scale")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon="HOLDOUT_ON")
-        subrow.prop(scene, "mask")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon="IMAGE_ALPHA")
-        subrow.prop(scene, "threshold")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "FORCE_CHARGE", text = "Direction")
-        subrow.prop(scene, "direction")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "UV", text = "Coordinates")
-        subrow.prop(scene, "coords")
+        subrow.prop(scene, "show_up")
         
         layout.separator()
         
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(text = "Individual controls")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "SHARPCURVE")
-        subrow.prop(scene, "sharpness")
-        subrow.operator("wm.set_edit_smoothness")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "SHADING_BBOX")
-        subrow.prop(scene, "escale")
-        subrow.operator("wm.set_edit_scale")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "FIXED_SIZE")
-        subrow.prop(scene, "estretch")
-        subrow.operator("wm.set_edit_stretch")
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(icon = "SYNTAX_OFF")
-        subrow.prop(scene, "ename")
-        subrow.operator("wm.set_edit_name")
+        if bpy.data.scenes["Scene"].show_up:
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "META_ELLIPSOID")
+            subrow.prop(scene, "edit_strength")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon="SHADING_BBOX")
+            subrow.prop(scene, "scale")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon="HOLDOUT_ON")
+            subrow.prop(scene, "mask")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon="IMAGE_ALPHA")
+            subrow.prop(scene, "threshold")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "FORCE_CHARGE", text = "Direction")
+            subrow.prop(scene, "direction")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "UV", text = "Coordinates")
+            subrow.prop(scene, "coords")
+            
+            layout.separator()
+            
+        if bpy.data.scenes["Scene"].empty_objects != None:
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(text = "Individual controls")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "SHARPCURVE")
+            subrow.prop(scene, "sharpness")
+            subrow.operator("wm.set_edit_smoothness")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "SHADING_BBOX")
+            subrow.prop(scene, "escale")
+            subrow.operator("wm.set_edit_scale")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "FIXED_SIZE")
+            subrow.prop(scene, "estretch")
+            subrow.operator("wm.set_edit_stretch")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "DRIVER_ROTATIONAL_DIFFERENCE")
+            subrow.prop(scene, "erotate")
+            subrow.operator("wm.set_edit_rotate")
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(icon = "SYNTAX_OFF")
+            subrow.prop(scene, "ename")
+            subrow.operator("wm.set_edit_name")
         
 
 def register():
@@ -382,6 +409,7 @@ def register():
     register_class(SetScale)
     register_class(SetName)
     register_class(SetStretch)
+    register_class(SetRotate)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -393,6 +421,8 @@ def register():
     bpy.types.Scene.edit_strength = FloatProperty(name = "Edits Strength", max = 99, min = -99, default = 50)
     
     bpy.types.Scene.auto_select = BoolProperty(name = "Selected edit to active", default = True)
+    
+    bpy.types.Scene.show_up = BoolProperty(name = "Show universal parameters", default = True)
 
     bpy.types.Scene.sharpness = FloatProperty(name = "Smooth", max = 1, min = 0, default = 1)
     
@@ -403,6 +433,7 @@ def register():
     bpy.types.Scene.mask = FloatProperty(name = "Mask", max = 10, min = 1, default = 7.5)
     bpy.types.Scene.escale = FloatProperty(name = "Scale", max = 10, min = .01, default = 1)
     bpy.types.Scene.estretch = FloatProperty(name = "Stretch", max = 10, min = .01, default = 1)
+    bpy.types.Scene.erotate = IntProperty(name = "Rotate", max = 180, min = -180, default = 0)
     bpy.types.Scene.ename = StringProperty(name = "")
 
 def unregister():
@@ -415,15 +446,19 @@ def unregister():
     unregister_class(SetScale)
     unregister_class(SetName)
     unregister_class(SetStretch)
+    unregister_class(SetRotate)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
     del bpy.types.Scene.edit_strength
+    del bpy.types.Scene.auto_select
+    del bpy.types.Scene.show_up
     del bpy.types.Scene.sharpness
     del bpy.types.Scene.mask
     del bpy.types.Scene.escale
     del bpy.types.Scene.ename
     del bpy.types.Scene.estretch
+    del bpy.types.Scene.erotate
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
