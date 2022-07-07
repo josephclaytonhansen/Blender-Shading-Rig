@@ -23,11 +23,11 @@ def distance(p1, p2):
         )
     return d
 
-def filter_callback(self, object):
-    if object.type == "EMPTY":
-        return object.name in self.my_collection.objects.keys() 
 
 class Globals():
+    #experimental - store names in array so they can be changed 
+    edit_names = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
+    
     #store global variables
     active_point = [
         round(bpy.data.objects["Area"].rotation_euler[0],2),
@@ -58,6 +58,11 @@ class Globals():
 
 g = Globals()
 #instantiate global variables
+
+
+def filter_callback(self, object):
+    if object.type == "EMPTY" and object.name in g.edit_names:
+        return object.name in self.my_collection.objects.keys() 
 
 def do_depsgraph_update(dummy):
     
@@ -129,7 +134,7 @@ def do_depsgraph_update(dummy):
             final_pos[axis_index] += round((round((g.multiplied_distances[entry_index] /100),2) * axis),6)
     g.final_pos = final_pos
     print(g.placeable, g.final_pos)
-    if not g.placeable:
+    if not g.placeable and g.final_pos != [0,0,0]:
         bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location = g.final_pos
     #end LERP
     
@@ -182,32 +187,32 @@ class SetSmoothness(Operator):
     bl_label = "Set"
     def execute(self,context):
         #experimental
-        #currently edit names and fields are hard-coded, this is bad!!! 
+        #currently fields are hard-coded, this is bad!!! 
         #Not sure what to do about it though. 
         
         #elif is cheaper than if so...
-        if bpy.data.scenes["Scene"].empty_objects.name == "EditA":
+        if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[0]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.002"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditB":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[1]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.003"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditC":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[2]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.005"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditD":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[3]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.006"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditE":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[4]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.008"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditF":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[5]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.009"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditG":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[6]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.010"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditH":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[7]:
             bpy.data.node_groups["EDIT_SHADING_INNER"].nodes["Group.011"].inputs[5].default_value = bpy.data.scenes["Scene"].sharpness
         
         return {'FINISHED'}
@@ -217,33 +222,47 @@ class SetScale(Operator):
     bl_label = "Set"
     def execute(self,context):
         #experimental
-        #currently edit names and fields are hard-coded, this is bad!!! 
+        #currently fields are hard-coded, this is bad!!! 
         #Not sure what to do about it though. 
         
         #elif is cheaper than if so...
-        if bpy.data.scenes["Scene"].empty_objects.name == "EditA":
+        if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[0]:
             bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditB":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[1]:
             bpy.data.node_groups["EC_B"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditC":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[2]:
             bpy.data.node_groups["EC_C"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditD":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[3]:
             bpy.data.node_groups["EC_D"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditE":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[4]:
             bpy.data.node_groups["EC_E"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditF":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[5]:
             bpy.data.node_groups["EC_F"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditG":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[6]:
             bpy.data.node_groups["EC_G"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
             
-        elif bpy.data.scenes["Scene"].empty_objects.name == "EditH":
+        elif bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[7]:
             bpy.data.node_groups["EC_H"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].escale
+        
+        return {'FINISHED'}
+
+class SetName(Operator):
+    bl_idname = "wm.set_edit_name"
+    bl_label = "Rename"
+    def execute(self,context):
+        working_index = g.edit_names.index(bpy.data.scenes["Scene"].empty_objects.name)
+        if bpy.data.scenes["Scene"].ename not in g.edit_names:
+            g.edit_names[working_index] = bpy.data.scenes["Scene"].ename
+            bpy.data.scenes["Scene"].empty_objects.name = bpy.data.scenes["Scene"].ename
+            print(g.edit_names)
+        else:
+            print("Name already in use")
         
         return {'FINISHED'}
 
@@ -271,8 +290,12 @@ class TogglePreview(Operator):
         g.placeable = not g.placeable
         if g.placeable:
             g.placeable_text = "Current: Placement"
+            for edit in g.edit_names:
+                bpy.data.objects[edit].hide_select = False
         else:
             g.placeable_text = "Current: Realtime Preview"
+            for edit in g.edit_names:
+                bpy.data.objects[edit].hide_select = True
         return {'FINISHED'}
     
 class OBJECT_PT_EFramePanel(Panel):
@@ -314,8 +337,6 @@ class OBJECT_PT_EFramePanel(Panel):
         layout.separator()
         
         col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(text = "Set selected edit to active:")
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
         
@@ -369,6 +390,12 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.prop(scene, "escale")
         subrow.operator("wm.set_edit_scale")
         
+        col = layout.column()
+        subrow = layout.row(align=True)
+        subrow.label(icon = "SYNTAX_OFF")
+        subrow.prop(scene, "ename")
+        subrow.operator("wm.set_edit_name")
+        
 
 def register():
     from bpy.utils import register_class
@@ -378,6 +405,7 @@ def register():
     register_class(TogglePreview)
     register_class(SetSmoothness)
     register_class(SetScale)
+    register_class(SetName)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -388,7 +416,7 @@ def register():
         poll=filter_callback)
     bpy.types.Scene.edit_strength = FloatProperty(name = "Edits Strength", max = 99, min = -99, default = 50)
     
-    bpy.types.Scene.auto_select = BoolProperty(name = "in placement mode", default = True)
+    bpy.types.Scene.auto_select = BoolProperty(name = "Selected edit to active", default = True)
 
     bpy.types.Scene.sharpness = FloatProperty(name = "Smooth", max = 1, min = 0, default = 1)
     
@@ -398,6 +426,7 @@ def register():
     bpy.types.Scene.threshold = FloatProperty(name = "Threshold", max = 10, min = 0, default = 0.1)
     bpy.types.Scene.mask = FloatProperty(name = "Mask", max = 10, min = 1, default = 7.5)
     bpy.types.Scene.escale = FloatProperty(name = "Scale", max = 10, min = .01, default = 1)
+    bpy.types.Scene.ename = StringProperty(name = "")
 
 def unregister():
     from bpy.utils import unregister_class
@@ -407,6 +436,7 @@ def unregister():
     unregister_class(TogglePreview)
     unregister_class(SetSmoothness)
     unregister_class(SetScale)
+    unregister_class(SetName)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
@@ -414,6 +444,7 @@ def unregister():
     del bpy.types.Scene.sharpness
     del bpy.types.Scene.mask
     del bpy.types.Scene.escale
+    del bpy.types.Scene.ename
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
