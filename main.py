@@ -348,7 +348,6 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.label(text="Edits collection")
         subrow.prop(scene, "my_collection")
         
-        col = layout.column()
         col.enabled = True if scene.my_collection else False
         subrow = layout.row(align=True)
         subrow.label(text="Active edit")
@@ -356,7 +355,6 @@ class OBJECT_PT_EFramePanel(Panel):
         
         layout.separator()
         
-        col = layout.column()
         subrow = layout.row(align=True)
         subrow.prop(scene, "show_up")
         subrow = layout.row(align=True)
@@ -368,29 +366,25 @@ class OBJECT_PT_EFramePanel(Panel):
         layout.separator()
         
         if bpy.data.scenes["Scene"].show_up:
-            col = layout.column()
             subrow = layout.row(align=True)
             subrow.label(icon = "META_ELLIPSOID")
             subrow.prop(scene, "edit_strength")
             
-            col = layout.column()
             subrow = layout.row(align=True)
             subrow.label(icon="SHADING_BBOX")
             subrow.prop(scene, "scale")
             
-            col = layout.column()
+
             subrow = layout.row(align=True)
             subrow.label(icon="IMAGE_ALPHA")
             subrow.prop(scene, "threshold")
             
             if bpy.data.scenes["Scene"].advanced:
                 
-                col = layout.column()
                 subrow = layout.row(align=True)
                 subrow.label(icon = "FORCE_CHARGE", text = "Direction")
                 subrow.prop(scene, "direction")
             
-                col = layout.column()
                 subrow = layout.row(align=True)
                 subrow.label(icon = "UV", text = "Coordinates")
                 subrow.prop(scene, "coords")
@@ -402,51 +396,46 @@ class OBJECT_PT_EFramePanel(Panel):
             subrow = layout.row(align=True)
             subrow.label(text = "Individual controls")
             
-            col = layout.column()
-            subrow = layout.row(align=True)
-            subrow.label(icon = "DECORATE_KEYFRAME")
-            subrow.prop(scene, "sharpness")
-            subrow.operator("wm.set_edit_smoothness")
+            if bpy.data.scenes["Scene"].advanced:
+                subrow = layout.row(align=True)
+                subrow.label(icon = "DECORATE_KEYFRAME")
+                subrow.prop(scene, "sharpness")
+                subrow.operator("wm.set_edit_smoothness")
             
-            col = layout.column()
             subrow = layout.row(align=True)
             subrow.label(icon = "SHARPCURVE")
             subrow.prop(scene, "epinch")
             subrow.operator("wm.set_edit_pinch")
             
-            col = layout.column()
             subrow = layout.row(align=True)
             subrow.label(icon = "SHADING_BBOX")
             subrow.prop(scene, "escale")
             subrow.operator("wm.set_edit_scale")
             
-            col = layout.column()
             subrow = layout.row(align=True)
-            subrow.label(icon = "DRIVER_ROTATIONAL_DIFFERENCE")
-            subrow.prop(scene, "erotate")
-            subrow.operator("wm.set_edit_rotate")
+            subrow.label(icon="FORCE_CHARGE")
+            subrow.prop(scene, "einfluence")
+            subrow.operator("wm.set_edit_influence")
+            
+            if bpy.data.scenes["Scene"].advanced:
+                
+                subrow = layout.row(align=True)
+                subrow.label(icon = "DRIVER_ROTATIONAL_DIFFERENCE")
+                subrow.prop(scene, "erotate")
+                subrow.operator("wm.set_edit_rotate")
+                
+            subrow = layout.row(align=True)
+            subrow.label(icon = "FIXED_SIZE")
+            subrow.prop(scene, "estretch")
+            subrow.operator("wm.set_edit_stretch")
             
             if bpy.data.scenes["Scene"].advanced:
             
-                col = layout.column()
-                subrow = layout.row(align=True)
-                subrow.label(icon = "FIXED_SIZE")
-                subrow.prop(scene, "estretch")
-                subrow.operator("wm.set_edit_stretch")
-            
-                col = layout.column()
                 subrow = layout.row(align=True)
                 subrow.label(icon="HOLDOUT_ON")
                 subrow.prop(scene, "mask")
                 subrow.operator("wm.set_edit_mask")
-                
-                col = layout.column()
-                subrow = layout.row(align=True)
-                subrow.label(icon="FORCE_CHARGE")
-                subrow.prop(scene, "einfluence")
-                subrow.operator("wm.set_edit_influence")
             
-                col = layout.column()
                 subrow = layout.row(align=True)
                 subrow.label(icon = "SYNTAX_OFF")
                 subrow.prop(scene, "ename")
@@ -493,7 +482,7 @@ def register():
     bpy.types.Scene.estretch = FloatProperty(name = "Stretch", max = 10, min = .01, default = 1)
     bpy.types.Scene.erotate = IntProperty(name = "Rotate", max = 180, min = -180, default = 0)
     bpy.types.Scene.epinch = FloatProperty(name = "Pinch", max = 1, min = 0.1, default = 1)
-    bpy.types.Scene.einfluence = FloatProperty(name = "Influence -/+ ", max = 1, min = 0, default = 1)
+    bpy.types.Scene.einfluence = FloatProperty(name = "Direction", max = 1, min = 0, default = 1)
     bpy.types.Scene.ename = StringProperty(name = "")
 
 def unregister():
