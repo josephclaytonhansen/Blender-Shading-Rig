@@ -16,6 +16,18 @@ from bpy.props import (StringProperty,
                        PointerProperty,
                        )
 
+from bpy.utils import register_class
+
+bl_info = {
+    'name': 'Cel-Shaded Character Studio',
+    'category': 'All',
+    'author': 'Joseph Hansen',
+    'version': (0, 1, 0),
+    'blender': (3, 0, 0),
+    'location': '',
+    'description': 'Character shading studio for 2D, hand-drawn, anime, cartoon, and NPR styles'
+}
+
 def distance(p1, p2):
     #calculate 3D distance
     d = math.sqrt(
@@ -36,11 +48,14 @@ class Globals():
     influence_groups = ["Group", "Group.001", "Group.002", "Group.003", "Group.004","Group.005", "Group.006", "Group.007"]
     
     #store global variables
-    active_point = [
-        round(bpy.data.objects["Area"].rotation_euler[0],2),
-        round(bpy.data.objects["Area"].rotation_euler[1],2),
-        round(bpy.data.objects["Area"].rotation_euler[2],2)
-        ]
+    try:
+        active_point = [
+            round(bpy.data.objects["Area"].rotation_euler[0],2),
+            round(bpy.data.objects["Area"].rotation_euler[1],2),
+            round(bpy.data.objects["Area"].rotation_euler[2],2)
+            ]
+    except:
+        active_point = [0.0,0.0,0.0]
     try:
         light_rot_array = json.loads(bpy.data.objects["EditA"]["light_rot"])
         distances = [0] * len(light_rot_array)
@@ -71,13 +86,30 @@ def filter_callback(self, object):
     if object.type == "EMPTY" and object.name in g.edit_names:
         return object.name in self.my_collection.objects.keys() 
 
+def update_individual_parameters(ob):
+    for i in g.edit_indices:
+            if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
+                bpy.data.scenes["Scene"].sharpness = bpy.data.node_groups["EDIT_SHADING_INNER"].nodes[g.edit_groups[i]].inputs[5].default_value
+                bpy.data.scenes["Scene"].escale = bpy.data.node_groups[g.edit_groups2[i]].nodes["Value"].outputs[0].default_value
+                bpy.data.scenes["Scene"].estretch = bpy.data.node_groups[g.edit_groups2[i]].nodes["Math.003"].inputs[1].default_value
+                bpy.data.scenes["Scene"].erotate = bpy.data.node_groups[g.rotate_groups[i]].nodes["Mapping.001"].inputs[2].default_value[0] * 62.8
+                bpy.data.scenes["Scene"].mask = bpy.data.node_groups[g.rotate_groups[i]].nodes["ColorRamp"].color_ramp.elements[1].position * 10
+                bpy.data.scenes["Scene"].epinch = bpy.data.node_groups[g.rotate_groups[i]].nodes["Value"].outputs[0].default_value
+                bpy.data.scenes["Scene"].einfluence = bpy.data.node_groups["Shading"].nodes[g.influence_groups[i]].inputs[2].default_value
+                
 def do_depsgraph_update(dummy):
+    bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[2].default_value = bpy.data.scenes["Scene"].scale
+    bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[3].default_value = bpy.data.scenes["Scene"].coords
+    bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[4].default_value = bpy.data.scenes["Scene"].threshold
+    bpy.data.node_groups["Shading"].nodes["Mix"].inputs[0].default_value = bpy.data.scenes["Scene"].direction
+    bpy.data.node_groups["Setup"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].edit_strength
     
     #If an edit is selected, the active edit should be that edit
     #This clears! 
     selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
-    print(selected)
     if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
+        if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
+            update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
     
     collection = bpy.data.scenes["Scene"].my_collection
@@ -332,14 +364,19 @@ class OBJECT_PT_EFramePanel(Panel):
         return context.object is not None
 
     def draw(self, context):
+        
+
+        icons = ["HOOK", "TRASH", "UV_SYNC_SELECT", "META_ELLIPSOID", "SHADING_BBOX", "IMAGE_ALPHA", "FORCE_CHARGE", "UV", "DECORATE_KEYFRAME",
+        "SHARPCURVE","SHADING_BBOX","FORCE_CHARGE", "DRIVER_ROTATIONAL_DIFFERENCE", "FIXED_SIZE", "HOLDOUT_ON", "SYNTAX_OFF"]
+        
         layout = self.layout
         scene = context.scene
         subcolumn = layout.column()
         subrow = layout.row(align=True)
-        subrow.operator("wm.add_eframe", icon = "HOOK")
-        subrow.operator("wm.no_eframe", icon = "TRASH")
+        subrow.operator("wm.add_eframe", icon = icons[0])
+        subrow.operator("wm.no_eframe", icon = icons[1])
         subrow = layout.row(align=True)
-        subrow.operator("wm.toggle", icon = "UV_SYNC_SELECT", depress = not g.placeable, text = g.placeable_text)
+        subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
         
         layout.separator()
         
@@ -363,33 +400,29 @@ class OBJECT_PT_EFramePanel(Panel):
             subrow = layout.row(align=True)
             subrow.prop(scene, "auto_select")
         
-        layout.separator()
-        
         if bpy.data.scenes["Scene"].show_up:
             subrow = layout.row(align=True)
-            subrow.label(icon = "META_ELLIPSOID")
+            subrow.label(icon = icons[3])
             subrow.prop(scene, "edit_strength")
             
             subrow = layout.row(align=True)
-            subrow.label(icon="SHADING_BBOX")
+            subrow.label(icon=icons[4])
             subrow.prop(scene, "scale")
             
 
             subrow = layout.row(align=True)
-            subrow.label(icon="IMAGE_ALPHA")
+            subrow.label(icon=icons[5])
             subrow.prop(scene, "threshold")
             
             if bpy.data.scenes["Scene"].advanced:
                 
                 subrow = layout.row(align=True)
-                subrow.label(icon = "FORCE_CHARGE", text = "Direction")
+                subrow.label(icon = icons[6], text = "Direction")
                 subrow.prop(scene, "direction")
             
                 subrow = layout.row(align=True)
-                subrow.label(icon = "UV", text = "Coordinates")
+                subrow.label(icon = icons[7], text = "Coordinates")
                 subrow.prop(scene, "coords")
-            
-            layout.separator()
             
         if bpy.data.scenes["Scene"].empty_objects != None:
             col = layout.column()
@@ -398,52 +431,51 @@ class OBJECT_PT_EFramePanel(Panel):
             
             if bpy.data.scenes["Scene"].advanced:
                 subrow = layout.row(align=True)
-                subrow.label(icon = "DECORATE_KEYFRAME")
+                subrow.label(icon = icons[8])
                 subrow.prop(scene, "sharpness")
                 subrow.operator("wm.set_edit_smoothness")
             
             subrow = layout.row(align=True)
-            subrow.label(icon = "SHARPCURVE")
+            subrow.label(icon = icons[9])
             subrow.prop(scene, "epinch")
             subrow.operator("wm.set_edit_pinch")
             
             subrow = layout.row(align=True)
-            subrow.label(icon = "SHADING_BBOX")
+            subrow.label(icon = icons[10])
             subrow.prop(scene, "escale")
             subrow.operator("wm.set_edit_scale")
             
             subrow = layout.row(align=True)
-            subrow.label(icon="FORCE_CHARGE")
+            subrow.label(icon=icons[11])
             subrow.prop(scene, "einfluence")
             subrow.operator("wm.set_edit_influence")
             
             if bpy.data.scenes["Scene"].advanced:
                 
                 subrow = layout.row(align=True)
-                subrow.label(icon = "DRIVER_ROTATIONAL_DIFFERENCE")
+                subrow.label(icon = icons[12])
                 subrow.prop(scene, "erotate")
                 subrow.operator("wm.set_edit_rotate")
                 
             subrow = layout.row(align=True)
-            subrow.label(icon = "FIXED_SIZE")
+            subrow.label(icon = icons[13])
             subrow.prop(scene, "estretch")
             subrow.operator("wm.set_edit_stretch")
             
             if bpy.data.scenes["Scene"].advanced:
             
                 subrow = layout.row(align=True)
-                subrow.label(icon="HOLDOUT_ON")
+                subrow.label(icon=icons[14])
                 subrow.prop(scene, "mask")
                 subrow.operator("wm.set_edit_mask")
             
                 subrow = layout.row(align=True)
-                subrow.label(icon = "SYNTAX_OFF")
+                subrow.label(icon = icons[15])
                 subrow.prop(scene, "ename")
                 subrow.operator("wm.set_edit_name")
         
 
 def register():
-    from bpy.utils import register_class
     register_class(OBJECT_PT_EFramePanel)
     register_class(AddEFrame)
     register_class(ClearEFrame)
@@ -456,6 +488,7 @@ def register():
     register_class(SetMask)
     register_class(SetPinch)
     register_class(SetInfluence)
+
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -499,6 +532,7 @@ def unregister():
     unregister_class(SetMask)
     unregister_class(SetPinch)
     unregister_class(SetInfluence)
+    unregister_class(eframesPreferences)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
@@ -520,6 +554,7 @@ def unregister():
         
     if do_depsgraph_update in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.remove(do_depsgraph_update)
+        
 if __name__ == "__main__":
     register()
 
