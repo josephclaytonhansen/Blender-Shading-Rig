@@ -1,5 +1,4 @@
 
-from itertools import groupby
 
 list1 = ["a", "b", "a", "b", "a", "b", "b", "a", "c"]
 holding_empty_pos = [0, 0, 1, 1, 2, 2, 3, 3, 4]
