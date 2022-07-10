@@ -39,6 +39,7 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
     splits_array_empty_pos = {}
     splits_array_light_rot = {}
     used_potentials = []
+    
     for x in range(0, len(all_edits)):
 
         working_saep = []
@@ -48,21 +49,23 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
             if all_edits[x] == edits[y]:
                 working_saep.append(eframes[y])
                 working_salr.append(light_rot[y])
+                print(working_saep)
+                print(working_salr)
                 if all_edits[x] not in used_potentials:
                     used_potentials.append(all_edits[x])
         
             if working_saep != []:
-                splits_array_empty_pos[edits[y]] = working_saep
+                splits_array_empty_pos[all_edits[x]] = working_saep
             if working_salr != []:
-                splits_array_light_rot[edits[y]] = working_salr
+                splits_array_light_rot[all_edits[x]] = working_salr
 
-    
     c = [splits_array_empty_pos, splits_array_light_rot]
     return c
 
 class Globals():
     #experimental - store names in array so they can be changed 
     edit_names = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
+    eframe_edit_names = []
     edit_groups = ["Group.002", "Group.003", "Group.005", "Group.006", "Group.008", "Group.009", "Group.010", "Group.011"]
     
     edit_groups2 = ["EC_A", "EC_B", "EC_C", "EC_D", "EC_E", "EC_F", "EC_G", "EC_H"]
@@ -152,63 +155,21 @@ def do_depsgraph_update(dummy):
     i = -1
     
     #experimental
-    working_empty_pos_array = []
+    c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
+    print("\nC results:")
+    print("Empty pos: ", c[0])
+    print("Light rot: ", c[1])
+    
+    w_lr = c[1]
+    w_ep = c[0]
+    
     working_light_rot_array = []
+    working_empty_pos_array = []
     
-    for entry in g.light_rot_array:
-        
-        #experimental
-        #This clears, in a sense- if you set eframes for EditA, and select EditA, editA will move on the corresponding eframes.
-        #It works on an individual basis, just not for all edits at once. 
-        if bpy.data.scenes["Scene"].empty_objects == g.eframe_to_edit[i]:
-            working_empty_pos_array.append(g.empty_pos_array[i])
-            working_light_rot_array.append(g.light_rot_array[i])
-            print(bpy.data.scenes["Scene"].empty_objects, working_empty_pos_array, working_light_rot_array)
-        
-        i +=1
-        
-        #experimental
-        if bpy.data.scenes["Scene"].empty_objects == g.eframe_to_edit[i]:
-        #get distances from active point to other points:
-            g.distances[i] = round(distance(g.active_point, entry),6)
+    for current_edit, entry in w_ep.items():
+        print(current_edit, entry)
             
-            #invert distances:
-            try:
-                g.inverse_distances[i] = round((1/distance(g.active_point, entry)),6)
-            except:
-                g.inverse_distances[i] = 0
-        
-        #calculate sum of total inverse distances:
-        g.total_inverse_distances = sum(g.inverse_distances)
-        #divide 100 by that, and multiply each distance by the result:
-        g.working_multiplier = 100 / g.total_inverse_distances
-        g.multiplied_distances[i] = g.inverse_distances[i] * g.working_multiplier
-    
-    
-    #LERP testing
-    final_pos = [0,0,0]
-
-    entry_index = -1
-
-    for entry in working_empty_pos_array:
-        entry_index += 1
-        axis_index = -1
-
-        for axis in entry:
-            axis_index += 1
-            final_pos[axis_index] += round((round((g.multiplied_distances[entry_index] /100),2) * axis),6)
-    g.final_pos = final_pos
-    print(g.placeable, g.final_pos)
-    if not g.placeable and g.final_pos != [0,0,0]:
-        bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location = g.final_pos
-    #end LERP
-    
-    #save globals to a custom property
-    
-    #This no longer works!!! 
-    
-#    bpy.data.objects["EditA"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-#    bpy.data.objects["EditA"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+            
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -222,14 +183,20 @@ class AddEFrame(Operator):
         
         #experimental - add active edit to g.eframe_to_edit
         g.eframe_to_edit.append(bpy.data.scenes["Scene"].empty_objects)
-        print(g.eframe_to_edit)
-        print(g.light_rot_array)
+        
+        #experimental
+        g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
         
         g.light_rot_array.append([
         round(bpy.data.objects["Area"].rotation_euler[0],4),
         round(bpy.data.objects["Area"].rotation_euler[1],4),
         round(bpy.data.objects["Area"].rotation_euler[2],4)
         ])
+        
+        print(bpy.data.scenes["Scene"].empty_objects.name)
+        print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name])
+        print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location)
+        
         g.empty_pos_array.append([
         round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[0],4),
         round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[1],4),
