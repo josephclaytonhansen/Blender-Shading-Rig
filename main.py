@@ -59,7 +59,7 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
             if working_salr != []:
                 splits_array_light_rot[all_edits[x]] = working_salr
 
-    c = [splits_array_empty_pos, splits_array_light_rot]
+    c = [splits_array_empty_pos, splits_array_light_rot, used_potentials]
     return c
 
 class Globals():
@@ -156,20 +156,35 @@ def do_depsgraph_update(dummy):
     
     #experimental
     c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
-    print("\nC results:")
-    print("Empty pos: ", c[0])
-    print("Light rot: ", c[1])
     
-    w_lr = c[1]
-    w_ep = c[0]
+    all_light_rot = c[1]
+    all_empty_pos = c[0]
+    edit_list = c[2]
     
-    working_light_rot_array = []
-    working_empty_pos_array = []
+    for edit in edit_list:
     
-    for current_edit, entry in w_ep.items():
-        print(current_edit, entry)
+        l = len(all_light_rot[edit])
+        distances = [0] * l
+        inverse_distances = [0] * l
+        multiplied_distances = [0] * l
+        
+        i = -1
+        
+        for point in all_light_rot[edit]:
+            i += 1
+
+            distances[i] = distance(g.active_point, point)
+            inverse_distances[i] = round((1/distances[i]),6)
+        
+        y = -1
+        for point in all_light_rot[edit]:
+            y += 1
+            total_inverse_distances = sum(inverse_distances)
+            working_multiplier = 100 / total_inverse_distances
             
-            
+            multiplied_distances[y] = inverse_distances[y] * working_multiplier
+            print("\n", edit)
+            print(multiplied_distances)
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -188,9 +203,9 @@ class AddEFrame(Operator):
         g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
         
         g.light_rot_array.append([
-        round(bpy.data.objects["Area"].rotation_euler[0],4),
-        round(bpy.data.objects["Area"].rotation_euler[1],4),
-        round(bpy.data.objects["Area"].rotation_euler[2],4)
+        round(bpy.data.objects["Area"].rotation_euler[0],6),
+        round(bpy.data.objects["Area"].rotation_euler[1],6),
+        round(bpy.data.objects["Area"].rotation_euler[2],6)
         ])
         
         print(bpy.data.scenes["Scene"].empty_objects.name)
