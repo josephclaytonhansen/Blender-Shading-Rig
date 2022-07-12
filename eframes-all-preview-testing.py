@@ -43,7 +43,6 @@ c = convert_full_eframes_array_to_edit_seperated_array(list1, holding_light_rot,
 all_empty_pos, all_light_rot, used_potentials = c[0], c[1], c[2]
 
 for edit in used_potentials:
-    print(edit)
     
     l = len(all_light_rot[edit])
     distances = [0] * l
@@ -56,7 +55,6 @@ for edit in used_potentials:
         i += 1
 
         distances[i] = distance(active_point, point)
-        print(distances)
         inverse_distances[i] = round((1/distances[i]),6)
     
     y = -1
@@ -67,3 +65,20 @@ for edit in used_potentials:
         
         multiplied_distances[y] = inverse_distances[y] * working_multiplier
         print(multiplied_distances)
+    
+    #LERP testing
+    final_pos = [0,0,0]
+
+    entry_index = -1
+
+    for entry in all_empty_pos[edit]:
+        entry_index += 1
+        axis_index = -1
+
+        for axis in entry:
+            axis_index += 1
+            final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
+
+
+    print(edit, final_pos)
+

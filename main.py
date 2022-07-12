@@ -49,8 +49,11 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
             if all_edits[x] == edits[y]:
                 working_saep.append(eframes[y])
                 working_salr.append(light_rot[y])
-                print(working_saep)
-                print(working_salr)
+                
+                if g.debug:
+                    print(working_saep)
+                    print(working_salr)
+                    
                 if all_edits[x] not in used_potentials:
                     used_potentials.append(all_edits[x])
         
@@ -74,12 +77,15 @@ class Globals():
     
     influence_groups = ["Group", "Group.001", "Group.002", "Group.003", "Group.004","Group.005", "Group.006", "Group.007"]
     
+    debug = False
+    
     #store global variables
     try:
         active_point = [
-            round(bpy.data.objects["Area"].rotation_euler[0],2),
-            round(bpy.data.objects["Area"].rotation_euler[1],2),
-            round(bpy.data.objects["Area"].rotation_euler[2],2)
+        #currently the light is hard-coded
+            round(bpy.data.objects["Sun"].rotation_euler[0],2),
+            round(bpy.data.objects["Sun"].rotation_euler[1],2),
+            round(bpy.data.objects["Sun"].rotation_euler[2],2)
             ]
     except:
         active_point = [0.0,0.0,0.0]
@@ -98,8 +104,8 @@ class Globals():
     total_inverse_distances = 0
     working_multiplier = 0
     final_pos = []
-    placeable = False
-    placeable_text = "Current: Realtime Preview"
+    placeable = True
+    placeable_text = "Current: Placement"
     
     #experimental - create another array for edit > eframe coordination
     #NO save and load functionality currently
@@ -132,7 +138,10 @@ def do_depsgraph_update(dummy):
     bpy.data.node_groups["Setup"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].edit_strength
     
     #If an edit is selected, the active edit should be that edit
-    #This clears! 
+    #This clears with a BUG
+    
+    #BUG: If the field is empty, selection doesn't work 
+    
     selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
     if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
         if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
@@ -144,17 +153,16 @@ def do_depsgraph_update(dummy):
     #represented as a "point" for ease of distance calculations.
     #For now, the light is hard-coded
     g.active_point = [
-        round(bpy.data.objects["Area"].rotation_euler[0],2),
-        round(bpy.data.objects["Area"].rotation_euler[1],2),
-        round(bpy.data.objects["Area"].rotation_euler[2],2)
+        round(bpy.data.objects["Sun"].rotation_euler[0],2),
+        round(bpy.data.objects["Sun"].rotation_euler[1],2),
+        round(bpy.data.objects["Sun"].rotation_euler[2],2)
         ]  
 
+    #Preview
     
-    #cycle through the light_rotation array to see if the current
-    #rotation matches any entry 
     i = -1
     
-    #experimental
+    #experimental- get WDMs
     c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
     
     all_light_rot = c[1]
@@ -183,8 +191,35 @@ def do_depsgraph_update(dummy):
             working_multiplier = 100 / total_inverse_distances
             
             multiplied_distances[y] = inverse_distances[y] * working_multiplier
-            print("\n", edit)
-            print(multiplied_distances)
+            
+            if g.debug:
+                print("\n", edit)
+                print(multiplied_distances)
+            
+        #WDM (everything above this) clears
+        
+        #LERP
+        final_pos = [0,0,0]
+
+        entry_index = -1
+
+        for entry in all_empty_pos[edit]:
+            entry_index += 1
+            axis_index = -1
+
+            for axis in entry:
+                axis_index += 1
+                final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
+                
+        g.final_pos = final_pos
+
+        if g.debug:
+            print("Placeable: ", g.placeable, "\nFinal pos: ", g.final_pos)
+        
+        if not g.placeable and g.final_pos != [0,0,0]:
+            bpy.data.objects[edit].location = g.final_pos
+        #end LERP
+        #LERP clears
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -203,9 +238,10 @@ class AddEFrame(Operator):
         g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
         
         g.light_rot_array.append([
-        round(bpy.data.objects["Area"].rotation_euler[0],6),
-        round(bpy.data.objects["Area"].rotation_euler[1],6),
-        round(bpy.data.objects["Area"].rotation_euler[2],6)
+        #currently the light is hard-coded
+        round(bpy.data.objects["Sun"].rotation_euler[0],6),
+        round(bpy.data.objects["Sun"].rotation_euler[1],6),
+        round(bpy.data.objects["Sun"].rotation_euler[2],6)
         ])
         
         print(bpy.data.scenes["Scene"].empty_objects.name)
@@ -317,9 +353,11 @@ class SetName(Operator):
         if bpy.data.scenes["Scene"].ename not in g.edit_names:
             g.edit_names[working_index] = bpy.data.scenes["Scene"].ename
             bpy.data.scenes["Scene"].empty_objects.name = bpy.data.scenes["Scene"].ename
-            print(g.edit_names)
+            if g.debug:
+                print(g.edit_names)
         else:
-            print()
+            if g.debug:
+                print()
             self.report({'ERROR'}, "Edit name already in use")
         
         return {'FINISHED'}
@@ -563,7 +601,3 @@ def unregister():
         
 if __name__ == "__main__":
     register()
-
-    
-
-
