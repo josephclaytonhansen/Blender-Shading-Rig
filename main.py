@@ -68,7 +68,7 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
 class Globals():
     #experimental - store names in array so they can be changed 
     edit_names = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
-    eframe_edit_names = []
+
     edit_groups = ["Group.002", "Group.003", "Group.005", "Group.006", "Group.008", "Group.009", "Group.010", "Group.011"]
     
     edit_groups2 = ["EC_A", "EC_B", "EC_C", "EC_D", "EC_E", "EC_F", "EC_G", "EC_H"]
@@ -92,26 +92,29 @@ class Globals():
     except:
         active_point = [0.0,0.0,0.0]
     try:
-        light_rot_array = json.loads(bpy.data.objects["EditA"]["light_rot"])
+        #hardcoded light
+        light_rot_array = json.loads(bpy.data.lights["Sun"]["light_rot"])
         distances = [0] * len(light_rot_array)
-        empty_pos_array = json.loads(bpy.data.objects["EditA"]["empty_pos"])
+        empty_pos_array = json.loads(bpy.data.lights["Sun"]["empty_pos"])
+        eframe_edit_names = eval(bpy.data.lights["Sun"]["edit_names"])
         inverse_distances = [0] * len(light_rot_array)
         multiplied_distances = [0] * len(light_rot_array)
-    except:
+        print("Successfully loaded e-frame data")
+
+    except Exception as e:
         light_rot_array = []
         empty_pos_array = []
         distances = []
         inverse_distances = []
         multiplied_distances = []
+        eframe_edit_names = []
+        print(e)
+        
     total_inverse_distances = 0
     working_multiplier = 0
     final_pos = []
     placeable = True
     placeable_text = "Current: Placement"
-    
-    #experimental - create another array for edit > eframe coordination
-    #NO save and load functionality currently
-    eframe_to_edit = []
 
 g = Globals()
 #instantiate global variables
@@ -231,6 +234,7 @@ def do_depsgraph_update(dummy):
                 bpy.data.objects[edit].location = g.final_pos
         #end LERP
         #LERP clears
+        
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
@@ -241,9 +245,6 @@ class AddEFrame(Operator):
     bl_label = "Add e-frame"
 
     def execute(self, context):
-        
-        #experimental - add active edit to g.eframe_to_edit
-        g.eframe_to_edit.append(bpy.data.scenes["Scene"].empty_objects)
         
         #experimental
         g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
@@ -276,6 +277,13 @@ class AddEFrame(Operator):
         #distances are dynamically calculated, we can leave
         #this blank for now. 
         #Same for the inverses
+        
+        #save e-frames to e-frame light
+        #hardcoded light
+        bpy.data.lights["Sun"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.lights["Sun"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+ 
+        bpy.data.lights["Sun"]["edit_names"] = str(g.eframe_edit_names)
         return {'FINISHED'}
 
 class SetSmoothness(Operator):
@@ -385,8 +393,6 @@ class ClearEFrame(Operator):
         g.empty_pos_array = []
         g.g.eframe_edit_names = []
         
-        #experimental
-        g.eframe_to_edit = []
         self.report({'INFO'}, str(count) + " E-Frames cleared")
         return {'FINISHED'}
 
@@ -486,10 +492,6 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.operator("wm.no_eframe", icon = icons[1])
         
-        layout.separator()
-        
-        subrow = layout.row(align=True)
-        subrow.operator("wm.eframes_jump")
         
 class OBJECT_PT_EFrameParamPanel(Panel):
     bl_label = "E-Frames Parameters"
