@@ -22,7 +22,7 @@ bl_info = {
     'name': 'Cel-Shaded Character Studio',
     'category': 'All',
     'author': 'Joseph Hansen',
-    'version': (0, 1, 0),
+    'version': (0, 1, 1),
     'blender': (3, 0, 0),
     'location': '',
     'description': 'Character shading studio for 2D, hand-drawn, anime, cartoon, and NPR styles'
@@ -78,6 +78,8 @@ class Globals():
     influence_groups = ["Group", "Group.001", "Group.002", "Group.003", "Group.004","Group.005", "Group.006", "Group.007"]
     
     debug = False
+    
+    jump = 0
     
     #store global variables
     try:
@@ -234,9 +236,9 @@ bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
 
 class AddEFrame(Operator):
-    """Add relationship between light angle and empty position"""
+    """Add e-frame, a relationship between light angle and edit position"""
     bl_idname = "wm.add_eframe"
-    bl_label = "Add EFrame"
+    bl_label = "Add e-frame"
 
     def execute(self, context):
         
@@ -253,9 +255,11 @@ class AddEFrame(Operator):
         round(bpy.data.objects["Sun"].rotation_euler[2],6)
         ])
         
-        print(bpy.data.scenes["Scene"].empty_objects.name)
-        print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name])
-        print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location)
+        if g.debug:
+        
+            print(bpy.data.scenes["Scene"].empty_objects.name)
+            print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name])
+            print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location)
         
         g.empty_pos_array.append([
         round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[0],4),
@@ -374,7 +378,7 @@ class SetName(Operator):
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
-    bl_label = "Clear All E-Frames"
+    bl_label = "Clear all e-frames"
     def execute(self, context):
         count = len(g.light_rot_array)
         g.light_rot_array = []
@@ -391,7 +395,8 @@ class ClearIndivEFrame(Operator):
     bl_idname = "wm.del_eframe"
     bl_label = "Clear e-frames from this edit"
     def execute(self, context):
-        print(g.eframe_edit_names)
+        if g.debug:
+            print(g.eframe_edit_names)
         dels = []
         i = -1
         for entry in g.eframe_edit_names:
@@ -401,7 +406,8 @@ class ClearIndivEFrame(Operator):
                 dels.append(i)
         
         dels = set(dels)
-        print(dels)
+        if g.debug:
+            print(dels)
         
         r_edit_names = [ value for (j, value) in enumerate(g.eframe_edit_names) if j not in set(dels) ]
         r_empty_pos = [ value for (k, value) in enumerate(g.empty_pos_array) if k not in set(dels) ]
@@ -410,7 +416,8 @@ class ClearIndivEFrame(Operator):
         g.eframe_edit_names = r_edit_names
         g.empty_pos_array = r_empty_pos
         g.light_rot_array = r_light_rot
-                
+        
+        self.report({'INFO'}, "E-frames cleared from " + str(bpy.data.scenes["Scene"].empty_objects.name))
         return {'FINISHED'}
 
 class TogglePreview(Operator):
@@ -452,8 +459,7 @@ class OBJECT_PT_EFramePanel(Panel):
         scene = context.scene
         subcolumn = layout.column()
         subrow = layout.row(align=True)
-        subrow.operator("wm.add_eframe", icon = icons[0])
-        subrow.operator("wm.no_eframe", icon = icons[1])
+        subrow.operator("wm.add_eframe")
         subrow = layout.row(align=True)
         subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
         
@@ -472,8 +478,18 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
         
+        layout.separator()
+        
         subrow = layout.row(align=True)
-        subrow.operator("wm.del_eframe")
+        subrow.operator("wm.del_eframe", icon = icons[1])
+        
+        subrow = layout.row(align=True)
+        subrow.operator("wm.no_eframe", icon = icons[1])
+        
+        layout.separator()
+        
+        subrow = layout.row(align=True)
+        subrow.operator("wm.eframes_jump")
         
 class OBJECT_PT_EFrameParamPanel(Panel):
     bl_label = "E-Frames Parameters"
