@@ -114,6 +114,12 @@ class Globals():
 g = Globals()
 #instantiate global variables
 
+def load_handler(dummy):
+    if g.placeable:
+        for edit in g.edit_names:
+                bpy.data.objects[edit].hide_select = False
+
+bpy.app.handlers.load_post.append(load_handler)
 
 def filter_callback(self, object):
     if object.type == "EMPTY" and object.name in g.edit_names:
