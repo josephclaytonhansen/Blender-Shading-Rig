@@ -380,8 +380,15 @@ class ClearEFrame(Operator):
         self.report({'INFO'}, str(count) + " E-Frames cleared")
         return {'FINISHED'}
 
+class ClearIndivEFrame(Operator):
+    """Clear e-frames from the active edit"""
+    bl_idname = "wm.del_eframe"
+    bl_label = "Clear e-frames from this edit"
+    def execute(self, context):
+        return {'FINISHED'}
+
 class TogglePreview(Operator):
-    """Toggle empty between realtime preview and placement"""
+    """Toggle between realtime preview and placement"""
     bl_idname = "wm.toggle"
     bl_label = "Toggle Preview"
     def execute(self, context):
@@ -397,11 +404,11 @@ class TogglePreview(Operator):
         return {'FINISHED'}
     
 class OBJECT_PT_EFramePanel(Panel):
-    bl_label = "EFrames"
+    bl_label = "E-Frames Management"
     bl_idname = "OBJECT_PT_eframe_panel"
     bl_space_type = "VIEW_3D"   
     bl_region_type = "UI"
-    bl_category = "Animation"
+    bl_category = "CSC Studio"
     bl_context = "objectmode"   
 
 
@@ -436,15 +443,36 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.label(text="Active edit")
         subrow.prop(scene, "empty_objects")
         
-        layout.separator()
+        subrow = layout.row(align=True)
+        subrow.prop(scene, "auto_select")
+        
+        subrow = layout.row(align=True)
+        subrow.operator("wm.del_eframe")
+        
+class OBJECT_PT_EFrameParamPanel(Panel):
+    bl_label = "E-Frames Parameters"
+    bl_idname = "OBJECT_PT_eframe_param_panel"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "UI"
+    bl_category = "CSC Studio"
+    bl_context = "objectmode"   
+
+
+    @classmethod
+    def poll(self,context):
+        return context.object is not None
+
+    def draw(self, context):
+        icons = ["HOOK", "TRASH", "UV_SYNC_SELECT", "META_ELLIPSOID", "SHADING_BBOX", "IMAGE_ALPHA", "FORCE_CHARGE", "UV", "DECORATE_KEYFRAME",
+        "SHARPCURVE","SHADING_BBOX","FORCE_CHARGE", "DRIVER_ROTATIONAL_DIFFERENCE", "FIXED_SIZE", "HOLDOUT_ON", "SYNTAX_OFF"]
+        
+        layout = self.layout
+        scene = context.scene
         
         subrow = layout.row(align=True)
         subrow.prop(scene, "show_up")
         subrow = layout.row(align=True)
         subrow.prop(scene, "advanced")
-        if bpy.data.scenes["Scene"].advanced:
-            subrow = layout.row(align=True)
-            subrow.prop(scene, "auto_select")
         
         if bpy.data.scenes["Scene"].show_up:
             subrow = layout.row(align=True)
@@ -523,8 +551,10 @@ class OBJECT_PT_EFramePanel(Panel):
 
 def register():
     register_class(OBJECT_PT_EFramePanel)
+    register_class(OBJECT_PT_EFrameParamPanel)
     register_class(AddEFrame)
     register_class(ClearEFrame)
+    register_class(ClearIndivEFrame)
     register_class(TogglePreview)
     register_class(SetSmoothness)
     register_class(SetScale)
@@ -567,8 +597,10 @@ def register():
 def unregister():
     from bpy.utils import unregister_class
     unregister_class(OBJECT_PT_EFramePanel)
+    unregister_class(OBJECT_PT_EFrameParamPanel)
     unregister_class(AddEFrame)
     unregister_class(ClearEFrame)
+    unregister_class(ClearIndivEFrame)
     unregister_class(TogglePreview)
     unregister_class(SetSmoothness)
     unregister_class(SetScale)
