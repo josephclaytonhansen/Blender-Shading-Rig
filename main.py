@@ -368,12 +368,12 @@ class SetName(Operator):
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
-    bl_label = "Clear E-Frames"
+    bl_label = "Clear All E-Frames"
     def execute(self, context):
         count = len(g.light_rot_array)
         g.light_rot_array = []
         g.empty_pos_array = []
-        g.eframe_edit_names = []
+        g.g.eframe_edit_names = []
         
         #experimental
         g.eframe_to_edit = []
@@ -385,6 +385,26 @@ class ClearIndivEFrame(Operator):
     bl_idname = "wm.del_eframe"
     bl_label = "Clear e-frames from this edit"
     def execute(self, context):
+        print(g.eframe_edit_names)
+        dels = []
+        i = -1
+        for entry in g.eframe_edit_names:
+            i += 1
+            if entry == bpy.data.scenes["Scene"].empty_objects.name:
+                #remove these entries and corresponding ones from light_rot and empty_pos
+                dels.append(i)
+        
+        dels = set(dels)
+        print(dels)
+        
+        r_edit_names = [ value for (j, value) in enumerate(g.eframe_edit_names) if j not in set(dels) ]
+        r_empty_pos = [ value for (k, value) in enumerate(g.empty_pos_array) if k not in set(dels) ]
+        r_light_rot = [ value for (l, value) in enumerate(g.light_rot_array) if l not in set(dels) ]
+        
+        g.eframe_edit_names = r_edit_names
+        g.empty_pos_array = r_empty_pos
+        g.light_rot_array = r_light_rot
+                
         return {'FINISHED'}
 
 class TogglePreview(Operator):
