@@ -218,6 +218,9 @@ def do_depsgraph_update(dummy):
         
         if not g.placeable and g.final_pos != [0,0,0]:
             bpy.data.objects[edit].location = g.final_pos
+        elif g.placeable and g.final_pos != [0,0,0]:
+            if bpy.data.scenes["Scene"].empty_objects.name != edit:
+                bpy.data.objects[edit].location = g.final_pos
         #end LERP
         #LERP clears
 
@@ -365,17 +368,16 @@ class SetName(Operator):
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
-    bl_label = "Clear EFrames"
+    bl_label = "Clear E-Frames"
     def execute(self, context):
+        count = len(g.light_rot_array)
         g.light_rot_array = []
         g.empty_pos_array = []
-        g.distances = []
-        g.inverse_distances = []
-        g.multiplied_distances = []
+        g.eframe_edit_names = []
         
         #experimental
         g.eframe_to_edit = []
-        
+        self.report({'INFO'}, str(count) + " E-Frames cleared")
         return {'FINISHED'}
 
 class TogglePreview(Operator):
@@ -389,7 +391,7 @@ class TogglePreview(Operator):
             for edit in g.edit_names:
                 bpy.data.objects[edit].hide_select = False
         else:
-            g.placeable_text = "Current: Realtime Preview"
+            g.placeable_text = "Current: Preview All"
             for edit in g.edit_names:
                 bpy.data.objects[edit].hide_select = True
         return {'FINISHED'}
