@@ -85,18 +85,18 @@ class Globals():
     try:
         active_point = [
         #currently the light is hard-coded
-            round(bpy.data.objects["Sun"].rotation_euler[0],2),
-            round(bpy.data.objects["Sun"].rotation_euler[1],2),
-            round(bpy.data.objects["Sun"].rotation_euler[2],2)
+            round(bpy.data.objects["Area"].rotation_euler[0],2),
+            round(bpy.data.objects["Area"].rotation_euler[1],2),
+            round(bpy.data.objects["Area"].rotation_euler[2],2)
             ]
     except:
         active_point = [0.0,0.0,0.0]
     try:
         #hardcoded light
-        light_rot_array = json.loads(bpy.data.lights["Sun"]["light_rot"])
+        light_rot_array = json.loads(bpy.data.lights["Area"]["light_rot"])
         distances = [0] * len(light_rot_array)
-        empty_pos_array = json.loads(bpy.data.lights["Sun"]["empty_pos"])
-        eframe_edit_names = eval(bpy.data.lights["Sun"]["edit_names"])
+        empty_pos_array = json.loads(bpy.data.lights["Area"]["empty_pos"])
+        eframe_edit_names = eval(bpy.data.lights["Area"]["edit_names"])
         inverse_distances = [0] * len(light_rot_array)
         multiplied_distances = [0] * len(light_rot_array)
         print("Successfully loaded e-frame data")
@@ -164,9 +164,9 @@ def do_depsgraph_update(dummy):
     #represented as a "point" for ease of distance calculations.
     #For now, the light is hard-coded
     g.active_point = [
-        round(bpy.data.objects["Sun"].rotation_euler[0],2),
-        round(bpy.data.objects["Sun"].rotation_euler[1],2),
-        round(bpy.data.objects["Sun"].rotation_euler[2],2)
+        round(bpy.data.objects["Area"].rotation_euler[0],2),
+        round(bpy.data.objects["Area"].rotation_euler[1],2),
+        round(bpy.data.objects["Area"].rotation_euler[2],2)
         ]  
 
     #Preview
@@ -251,9 +251,9 @@ class AddEFrame(Operator):
         
         g.light_rot_array.append([
         #currently the light is hard-coded
-        round(bpy.data.objects["Sun"].rotation_euler[0],6),
-        round(bpy.data.objects["Sun"].rotation_euler[1],6),
-        round(bpy.data.objects["Sun"].rotation_euler[2],6)
+        round(bpy.data.objects["Area"].rotation_euler[0],6),
+        round(bpy.data.objects["Area"].rotation_euler[1],6),
+        round(bpy.data.objects["Area"].rotation_euler[2],6)
         ])
         
         if g.debug:
@@ -280,10 +280,10 @@ class AddEFrame(Operator):
         
         #save e-frames to e-frame light
         #hardcoded light
-        bpy.data.lights["Sun"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.lights["Sun"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
  
-        bpy.data.lights["Sun"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
         return {'FINISHED'}
 
 class SetSmoothness(Operator):
