@@ -79,24 +79,24 @@ class Globals():
     
     debug = False
     
-    jump = 0
+    controller_index = 0
     
     #store global variables
     try:
         active_point = [
         #currently the light is hard-coded
-            round(bpy.data.objects["Sun"].rotation_euler[0],2),
-            round(bpy.data.objects["Sun"].rotation_euler[1],2),
-            round(bpy.data.objects["Sun"].rotation_euler[2],2)
+            round(bpy.data.objects["Area"].rotation_euler[0],2),
+            round(bpy.data.objects["Area"].rotation_euler[1],2),
+            round(bpy.data.objects["Area"].rotation_euler[2],2)
             ]
     except:
         active_point = [0.0,0.0,0.0]
     try:
         #hardcoded light
-        light_rot_array = json.loads(bpy.data.lights["Sun"]["light_rot"])
+        light_rot_array = json.loads(bpy.data.lights["Area"]["light_rot"])
         distances = [0] * len(light_rot_array)
-        empty_pos_array = json.loads(bpy.data.lights["Sun"]["empty_pos"])
-        eframe_edit_names = eval(bpy.data.lights["Sun"]["edit_names"])
+        empty_pos_array = json.loads(bpy.data.lights["Area"]["empty_pos"])
+        eframe_edit_names = eval(bpy.data.lights["Area"]["edit_names"])
         inverse_distances = [0] * len(light_rot_array)
         multiplied_distances = [0] * len(light_rot_array)
         print("Successfully loaded e-frame data")
@@ -115,10 +115,42 @@ class Globals():
     final_pos = []
     placeable = True
     placeable_text = "Current: Placement"
+    
+    ready_for_eframes = False
+    #Eventually this will be True when the object is set, the edits are spawned, the nodes are set up, and the light is assigned.
+    #Right now, it's just when the light is assigned. 
 
 g = Globals()
 #instantiate global variables
 
+#create light object
+def add_light_edit_controller():
+    g.controller_index+=1
+    #currently light names are incremental- this is not a good idea, eventually the name should incorporate the edit target object
+    light_data = bpy.data.lights.new(name="Light_EditController"+str(g.controller_index), type='AREA')
+    light_data.energy = 200
+
+    light_object = bpy.data.objects.new(name="Light_EditController"+str(g.controller_index), object_data=light_data)
+
+    bpy.context.collection.objects.link(light_object)
+
+    bpy.context.view_layer.objects.active = light_object
+
+    add_storage_properties_to_light(light_object)
+
+    dg = bpy.context.evaluated_depsgraph_get() 
+    dg.update()
+    
+    #no it isn't, but it is for now ( see Globals() )
+    g.ready_for_eframes = True
+
+#prep light for storage
+def add_storage_properties_to_light(light):
+    light["edit_names"] = "[]"
+    light["empty_pos"] = "[]"
+    light["light_rot"] = "[]"
+
+#on load- fix the selection bug
 def load_handler(dummy):
     if g.placeable:
         for edit in g.edit_names:
@@ -126,10 +158,12 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
+#this is for the colelction field
 def filter_callback(self, object):
     if object.type == "EMPTY" and object.name in g.edit_names:
         return object.name in self.my_collection.objects.keys() 
 
+#this is a getter function for the individual parameters
 def update_individual_parameters(ob):
     for i in g.edit_indices:
             if bpy.data.scenes["Scene"].empty_objects.name == g.edit_names[i]:
@@ -142,6 +176,7 @@ def update_individual_parameters(ob):
                 bpy.data.scenes["Scene"].einfluence = bpy.data.node_groups["Shading"].nodes[g.influence_groups[i]].inputs[2].default_value
                 
 def do_depsgraph_update(dummy):
+
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[2].default_value = bpy.data.scenes["Scene"].scale
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[3].default_value = bpy.data.scenes["Scene"].coords
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[4].default_value = bpy.data.scenes["Scene"].threshold
@@ -153,20 +188,22 @@ def do_depsgraph_update(dummy):
     
     #BUG: If the field is empty, selection doesn't work 
     
+   
     selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
-    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
+    
+    if bpy.context.active_object != None and bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
         if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
             update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
-    
+
     collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
     #represented as a "point" for ease of distance calculations.
     #For now, the light is hard-coded
     g.active_point = [
-        round(bpy.data.objects["Sun"].rotation_euler[0],2),
-        round(bpy.data.objects["Sun"].rotation_euler[1],2),
-        round(bpy.data.objects["Sun"].rotation_euler[2],2)
+        round(bpy.data.objects["Area"].rotation_euler[0],2),
+        round(bpy.data.objects["Area"].rotation_euler[1],2),
+        round(bpy.data.objects["Area"].rotation_euler[2],2)
         ]  
 
     #Preview
@@ -239,6 +276,15 @@ def do_depsgraph_update(dummy):
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
 
+
+class AddLightController(Operator):
+    bl_idname = "wm.add_key_light_controller"
+    bl_label = "Add key light for edits" 
+    
+    def execute(self, context):
+        add_light_edit_controller()
+        return {'FINISHED'}
+
 class AddEFrame(Operator):
     """Add e-frame, a relationship between light angle and edit position"""
     bl_idname = "wm.add_eframe"
@@ -251,9 +297,9 @@ class AddEFrame(Operator):
         
         g.light_rot_array.append([
         #currently the light is hard-coded
-        round(bpy.data.objects["Sun"].rotation_euler[0],6),
-        round(bpy.data.objects["Sun"].rotation_euler[1],6),
-        round(bpy.data.objects["Sun"].rotation_euler[2],6)
+        round(bpy.data.objects["Area"].rotation_euler[0],6),
+        round(bpy.data.objects["Area"].rotation_euler[1],6),
+        round(bpy.data.objects["Area"].rotation_euler[2],6)
         ])
         
         if g.debug:
@@ -280,10 +326,10 @@ class AddEFrame(Operator):
         
         #save e-frames to e-frame light
         #hardcoded light
-        bpy.data.lights["Sun"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.lights["Sun"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
  
-        bpy.data.lights["Sun"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
         return {'FINISHED'}
 
 class SetSmoothness(Operator):
@@ -463,34 +509,40 @@ class OBJECT_PT_EFramePanel(Panel):
         
         layout = self.layout
         scene = context.scene
-        subcolumn = layout.column()
-        subrow = layout.row(align=True)
-        subrow.operator("wm.add_eframe")
-        subrow = layout.row(align=True)
-        subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
         
-        layout.separator()
+        if g.ready_for_eframes:
+            subcolumn = layout.column()
+            subrow = layout.row(align=True)
+            subrow.operator("wm.add_eframe")
+            subrow = layout.row(align=True)
+            subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
+            
+            layout.separator()
+            
+            col = layout.column()
+            subrow = layout.row(align=True)
+            subrow.label(text="Edits collection")
+            subrow.prop(scene, "my_collection")
+            
+            col.enabled = True if scene.my_collection else False
+            subrow = layout.row(align=True)
+            subrow.label(text="Active edit")
+            subrow.prop(scene, "empty_objects")
+            
+            subrow = layout.row(align=True)
+            subrow.prop(scene, "auto_select")
+            
+            layout.separator()
+            
+            subrow = layout.row(align=True)
+            subrow.operator("wm.del_eframe", icon = icons[1])
+            
+            subrow = layout.row(align=True)
+            subrow.operator("wm.no_eframe", icon = icons[1])
         
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(text="Edits collection")
-        subrow.prop(scene, "my_collection")
-        
-        col.enabled = True if scene.my_collection else False
-        subrow = layout.row(align=True)
-        subrow.label(text="Active edit")
-        subrow.prop(scene, "empty_objects")
-        
-        subrow = layout.row(align=True)
-        subrow.prop(scene, "auto_select")
-        
-        layout.separator()
-        
-        subrow = layout.row(align=True)
-        subrow.operator("wm.del_eframe", icon = icons[1])
-        
-        subrow = layout.row(align=True)
-        subrow.operator("wm.no_eframe", icon = icons[1])
+        else:
+            subrow = layout.row(align=True)
+            subrow.operator("wm.add_key_light_controller")
         
         
 class OBJECT_PT_EFrameParamPanel(Panel):
@@ -513,84 +565,86 @@ class OBJECT_PT_EFrameParamPanel(Panel):
         layout = self.layout
         scene = context.scene
         
-        subrow = layout.row(align=True)
-        subrow.prop(scene, "show_up")
-        subrow = layout.row(align=True)
-        subrow.prop(scene, "advanced")
-        
-        if bpy.data.scenes["Scene"].show_up:
+        if g.ready_for_eframes:
             subrow = layout.row(align=True)
-            subrow.label(icon = icons[3])
-            subrow.prop(scene, "edit_strength")
-            
+            subrow.prop(scene, "show_up")
             subrow = layout.row(align=True)
-            subrow.label(icon=icons[4])
-            subrow.prop(scene, "scale")
+            subrow.prop(scene, "advanced")
             
+            if bpy.data.scenes["Scene"].show_up:
+                subrow = layout.row(align=True)
+                subrow.label(icon = icons[3])
+                subrow.prop(scene, "edit_strength")
+                
+                subrow = layout.row(align=True)
+                subrow.label(icon=icons[4])
+                subrow.prop(scene, "scale")
+                
 
-            subrow = layout.row(align=True)
-            subrow.label(icon=icons[5])
-            subrow.prop(scene, "threshold")
-            
-            if bpy.data.scenes["Scene"].advanced:
+                subrow = layout.row(align=True)
+                subrow.label(icon=icons[5])
+                subrow.prop(scene, "threshold")
+                
+                if bpy.data.scenes["Scene"].advanced:
+                    
+                    subrow = layout.row(align=True)
+                    subrow.label(icon = icons[6], text = "Direction")
+                    subrow.prop(scene, "direction")
+                
+                    subrow = layout.row(align=True)
+                    subrow.label(icon = icons[7], text = "Coordinates")
+                    subrow.prop(scene, "coords")
+                
+            if bpy.data.scenes["Scene"].empty_objects != None:
+                col = layout.column()
+                subrow = layout.row(align=True)
+                subrow.label(text = "Individual controls")
+                
+                if bpy.data.scenes["Scene"].advanced:
+                    subrow = layout.row(align=True)
+                    subrow.label(icon = icons[8])
+                    subrow.prop(scene, "sharpness")
+                    subrow.operator("wm.set_edit_smoothness")
                 
                 subrow = layout.row(align=True)
-                subrow.label(icon = icons[6], text = "Direction")
-                subrow.prop(scene, "direction")
-            
-                subrow = layout.row(align=True)
-                subrow.label(icon = icons[7], text = "Coordinates")
-                subrow.prop(scene, "coords")
-            
-        if bpy.data.scenes["Scene"].empty_objects != None:
-            col = layout.column()
-            subrow = layout.row(align=True)
-            subrow.label(text = "Individual controls")
-            
-            if bpy.data.scenes["Scene"].advanced:
-                subrow = layout.row(align=True)
-                subrow.label(icon = icons[8])
-                subrow.prop(scene, "sharpness")
-                subrow.operator("wm.set_edit_smoothness")
-            
-            subrow = layout.row(align=True)
-            subrow.label(icon = icons[9])
-            subrow.prop(scene, "epinch")
-            subrow.operator("wm.set_edit_pinch")
-            
-            subrow = layout.row(align=True)
-            subrow.label(icon = icons[10])
-            subrow.prop(scene, "escale")
-            subrow.operator("wm.set_edit_scale")
-            
-            subrow = layout.row(align=True)
-            subrow.label(icon=icons[11])
-            subrow.prop(scene, "einfluence")
-            subrow.operator("wm.set_edit_influence")
-            
-            if bpy.data.scenes["Scene"].advanced:
+                subrow.label(icon = icons[9])
+                subrow.prop(scene, "epinch")
+                subrow.operator("wm.set_edit_pinch")
                 
                 subrow = layout.row(align=True)
-                subrow.label(icon = icons[12])
-                subrow.prop(scene, "erotate")
-                subrow.operator("wm.set_edit_rotate")
+                subrow.label(icon = icons[10])
+                subrow.prop(scene, "escale")
+                subrow.operator("wm.set_edit_scale")
                 
-            subrow = layout.row(align=True)
-            subrow.label(icon = icons[13])
-            subrow.prop(scene, "estretch")
-            subrow.operator("wm.set_edit_stretch")
-            
-            if bpy.data.scenes["Scene"].advanced:
-            
                 subrow = layout.row(align=True)
-                subrow.label(icon=icons[14])
-                subrow.prop(scene, "mask")
-                subrow.operator("wm.set_edit_mask")
-            
+                subrow.label(icon=icons[11])
+                subrow.prop(scene, "einfluence")
+                subrow.operator("wm.set_edit_influence")
+                
+                if bpy.data.scenes["Scene"].advanced:
+                    
+                    subrow = layout.row(align=True)
+                    subrow.label(icon = icons[12])
+                    subrow.prop(scene, "erotate")
+                    subrow.operator("wm.set_edit_rotate")
+                    
                 subrow = layout.row(align=True)
-                subrow.label(icon = icons[15])
-                subrow.prop(scene, "ename")
-                subrow.operator("wm.set_edit_name")
+                subrow.label(icon = icons[13])
+                subrow.prop(scene, "estretch")
+                subrow.operator("wm.set_edit_stretch")
+                
+                if bpy.data.scenes["Scene"].advanced:
+                
+                    subrow = layout.row(align=True)
+                    subrow.label(icon=icons[14])
+                    subrow.prop(scene, "mask")
+                    subrow.operator("wm.set_edit_mask")
+                
+                    subrow = layout.row(align=True)
+                    subrow.label(icon = icons[15])
+                    subrow.prop(scene, "ename")
+                    subrow.operator("wm.set_edit_name")
+
         
 
 def register():
@@ -608,6 +662,7 @@ def register():
     register_class(SetMask)
     register_class(SetPinch)
     register_class(SetInfluence)
+    register_class(AddLightController)
 
     
     bpy.types.Scene.my_collection = PointerProperty(
@@ -655,6 +710,7 @@ def unregister():
     unregister_class(SetPinch)
     unregister_class(SetInfluence)
     unregister_class(eframesPreferences)
+    unregister_class(AddLightController)
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
