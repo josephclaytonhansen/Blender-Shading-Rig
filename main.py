@@ -119,36 +119,76 @@ class Globals():
     ready_for_eframes = False
     #Eventually this will be True when the object is set, the edits are spawned, the nodes are set up, and the light is assigned.
     #Right now, it's just when the light is assigned. 
+    ready_for_light_bind = False
+    show_spawn_edits_button = False
+    objects_with_edits = []
+    mesh_selected = False
+    
+    light_bindings = {}
 
 g = Globals()
 #instantiate global variables
 
+#edit management status determination
+def determine_edit_state():
+    selected = "MESH" in [obj.type for obj in bpy.context.selected_objects]
+    if not selected:
+        print("No mesh selected")
+        g.mesh_selected = False
+    else:
+        g.mesh_selected = True
+        selected_mesh = bpy.context.selected_objects[0]
+        #first check- is selected mesh ready for edits?
+        if selected_mesh.name in g.objects_with_edits:
+            #now we check if selected mesh has a bound light
+            if selected_mesh.name in g.light_bindings:
+                #if both of these true, everything is good to go
+                g.ready_for_eframes = True
+                g.ready_for_light_bind = False
+                g.show_spawn_edits_button = False
+            else:
+                #light has not been bound
+                g.ready_for_eframes = False
+                g.ready_for_light_bind = True
+                g.show_spawn_edits_button = False
+        else:
+            #in this case, we need to Add Edits to object
+            g.objects_with_edits.append(selected_mesh.name)
+            g.show_add_edits_button = True
+            g.ready_for_eframes = False
+            g.ready_for_light_bind = False
+        
+        print("Ready for e-frames? ", g.ready_for_eframes, "Ready for light bind? ", g.ready_for_light_bind, "Ready for edits? ", g.show_spawn_edits_button)
+
+
 #create light object
 def add_light_edit_controller():
-    g.controller_index+=1
-    #currently light names are incremental- this is not a good idea, eventually the name should incorporate the edit target object
-    light_data = bpy.data.lights.new(name="Light_EditController"+str(g.controller_index), type='AREA')
-    light_data.energy = 200
-
-    light_object = bpy.data.objects.new(name="Light_EditController"+str(g.controller_index), object_data=light_data)
-
-    bpy.context.collection.objects.link(light_object)
-
-    bpy.context.view_layer.objects.active = light_object
-
-    add_storage_properties_to_light(light_object)
-
+    g.light_bindings[bpy.context.selected_objects[0].name] = "bound"
+    print(g.light_bindings)
     dg = bpy.context.evaluated_depsgraph_get() 
     dg.update()
     
-    #no it isn't, but it is for now ( see Globals() )
-    g.ready_for_eframes = True
+    if g._ready_for_light_bind:
+        g.controller_index+=1
+        #currently light names are incremental- this is not a good idea, eventually the name should incorporate the edit target object
+        light_data = bpy.data.lights.new(name="Light_EditController"+str(g.controller_index), type='AREA')
+        light_data.energy = 200
+
+        light_object = bpy.data.objects.new(name="Light_EditController"+str(g.controller_index), object_data=light_data)
+
+        bpy.context.collection.objects.link(light_object)
+
+        add_storage_properties_to_light(light_object, bpy.context.selected_objects[0])
+
+        dg = bpy.context.evaluated_depsgraph_get() 
+        dg.update()
 
 #prep light for storage
-def add_storage_properties_to_light(light):
+def add_storage_properties_to_light(light, obj):
     light["edit_names"] = "[]"
     light["empty_pos"] = "[]"
     light["light_rot"] = "[]"
+    light["binding"] = str(obj.name)
 
 #on load- fix the selection bug
 def load_handler(dummy):
@@ -158,7 +198,7 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-#this is for the colelction field
+#this is for the collection field
 def filter_callback(self, object):
     if object.type == "EMPTY" and object.name in g.edit_names:
         return object.name in self.my_collection.objects.keys() 
@@ -176,7 +216,10 @@ def update_individual_parameters(ob):
                 bpy.data.scenes["Scene"].einfluence = bpy.data.node_groups["Shading"].nodes[g.influence_groups[i]].inputs[2].default_value
                 
 def do_depsgraph_update(dummy):
-
+    
+    #experimental- determine edit status
+    determine_edit_state()
+    
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[2].default_value = bpy.data.scenes["Scene"].scale
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[3].default_value = bpy.data.scenes["Scene"].coords
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[4].default_value = bpy.data.scenes["Scene"].threshold
@@ -191,7 +234,7 @@ def do_depsgraph_update(dummy):
    
     selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
     
-    if bpy.context.active_object != None and bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
+    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
         if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
             update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
         bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object

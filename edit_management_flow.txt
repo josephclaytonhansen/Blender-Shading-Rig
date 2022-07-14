@@ -1,0 +1,38 @@
+import bpy
+#If object is selected and is a mesh
+#	If selected mesh is in g.objects_with_edits
+# 		if light has been bound:
+#			Show full panels
+#		If light has not been bound:
+#			Show "Bind light" button (does what add light does, but also binds via custom property object_name)
+#	Otherwise:
+#		show "Add edits to object"
+#		Spawn edits
+#		Add material
+#Otherwise: 
+#	"No mesh object selected" or "Selected object is not a mesh" as appropiate
+
+def determine_edit_state:
+    selected = "MESH" in [obj.type for obj in bpy.context.selected_objects]
+    #first check- is selected mesh ready for edits?
+    if selected[0].name in g.objects_with_edits:
+        #now we check if selected mesh has a bound light
+        if selected[0].name in g.light_bindings:
+            #if both of these true, everything is good to go
+            g.ready_for_eframes = True
+            g.ready_for_light_bind = False
+            g.show_spawn_edits_button = False
+        else:
+            #light has not been bound
+            g.ready_for_eframes = False
+            g.ready_for_light_bind = True
+            g.show_spawn_edits_button = False
+    else:
+        #in this case, we need to Add Edits to object
+        g.objects_with_edits.append(selected[0].name)
+        g.show_add_edits_button = True
+        g.ready_for_eframes = False
+        g.ready_for_light_bind = False
+    
+    print("Ready for e-frames? ", g.ready_for_eframes, "Ready for light bind? ", g.ready_for_light_bind, "Ready for edits? ", g.show_spawn_edits_button)
+        
