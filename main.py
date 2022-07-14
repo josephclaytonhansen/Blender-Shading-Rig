@@ -282,7 +282,6 @@ class AddEFrame(Operator):
         #hardcoded light
         bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
         bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
- 
         bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
         return {'FINISHED'}
 
@@ -391,8 +390,10 @@ class ClearEFrame(Operator):
         count = len(g.light_rot_array)
         g.light_rot_array = []
         g.empty_pos_array = []
-        g.g.eframe_edit_names = []
-        
+        g.eframe_edit_names = []
+        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
         self.report({'INFO'}, str(count) + " E-Frames cleared")
         return {'FINISHED'}
 
@@ -422,6 +423,10 @@ class ClearIndivEFrame(Operator):
         g.eframe_edit_names = r_edit_names
         g.empty_pos_array = r_empty_pos
         g.light_rot_array = r_light_rot
+        
+        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
         
         self.report({'INFO'}, "E-frames cleared from " + str(bpy.data.scenes["Scene"].empty_objects.name))
         return {'FINISHED'}
