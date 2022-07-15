@@ -81,6 +81,8 @@ class Globals():
     
     jump = 0
     
+    active_light = None
+    
     #store global variables
     try:
         active_point = [
@@ -156,6 +158,15 @@ def do_depsgraph_update(dummy):
     bpy.data.node_groups["Shading"].nodes["Mix"].inputs[0].default_value = bpy.data.scenes["Scene"].direction
     bpy.data.node_groups["Setup"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].edit_strength
     
+    #set active light
+    try:
+        g.active_light = bpy.data.objects[bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]]
+        g.active_light_name = bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]
+    except Exception as e:
+        g.active_light = None
+        g.active_light_name = ""
+        print(e)
+    
     #If an edit is selected, the active edit should be that edit
     #This clears with a BUG
     
@@ -170,11 +181,11 @@ def do_depsgraph_update(dummy):
     collection = bpy.data.scenes["Scene"].my_collection
     #when the depsgraph updates, get the active light_rotation 
     #represented as a "point" for ease of distance calculations.
-    #For now, the light is hard-coded
+
     g.active_point = [
-        round(bpy.data.objects["Area"].rotation_euler[0],2),
-        round(bpy.data.objects["Area"].rotation_euler[1],2),
-        round(bpy.data.objects["Area"].rotation_euler[2],2)
+        round(g.active_light.rotation_euler[0],2),
+        round(g.active_light.rotation_euler[1],2),
+        round(g.active_light.rotation_euler[2],2)
         ]  
 
     #Preview
@@ -256,6 +267,7 @@ class BindLight(Operator):
         if bpy.data.scenes["Scene"].edit_object != None:
             if bpy.data.scenes["Scene"].bound_light != None:
                 bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"] = str("" + bpy.data.scenes["Scene"].bound_light.name + "")
+                bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name].data.update()
             else:
                 self.report({'WARNING'}, "No light set")
         else:
@@ -269,6 +281,7 @@ class UnBindLight(Operator):
     
     def execute(self, context):
         bpy.data.objects["Roundcube"]["bound_light"] = None
+        bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name].data.update()
         return {'FINISHED'}
 
 class AddEFrame(Operator):
@@ -282,10 +295,10 @@ class AddEFrame(Operator):
         g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
         
         g.light_rot_array.append([
-        #currently the light is hard-coded
-        round(bpy.data.objects["Area"].rotation_euler[0],6),
-        round(bpy.data.objects["Area"].rotation_euler[1],6),
-        round(bpy.data.objects["Area"].rotation_euler[2],6)
+
+        round(bpy.data.objects[g.active_light_name].rotation_euler[0],6),
+        round(bpy.data.objects[g.active_light_name].rotation_euler[1],6),
+        round(bpy.data.objects[g.active_light_name].rotation_euler[2],6)
         ])
         
         if g.debug:
@@ -312,9 +325,10 @@ class AddEFrame(Operator):
         
         #save e-frames to e-frame light
         #hardcoded light
-        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
-        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.data.objects[g.active_light_name]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.objects[g.active_light_name]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.objects[g.active_light_name]["edit_names"] = str(g.eframe_edit_names)
+        bpy.context.view_layer.depsgraph.update()
         return {'FINISHED'}
 
 class SetSmoothness(Operator):
@@ -423,9 +437,10 @@ class ClearEFrame(Operator):
         g.light_rot_array = []
         g.empty_pos_array = []
         g.eframe_edit_names = []
-        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
-        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.data.objects["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.objects["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.objects["Area"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.context.view_layer.depsgraph.update()
         self.report({'INFO'}, str(count) + " E-Frames cleared")
         return {'FINISHED'}
 
@@ -456,9 +471,10 @@ class ClearIndivEFrame(Operator):
         g.empty_pos_array = r_empty_pos
         g.light_rot_array = r_light_rot
         
-        bpy.data.lights["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.lights["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
-        bpy.data.lights["Area"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.data.objects["Area"]["light_rot"] = str(json.loads(str(g.light_rot_array)))
+        bpy.data.objects["Area"]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+        bpy.data.objects["Area"]["edit_names"] = str(g.eframe_edit_names)
+        bpy.context.view_layer.depsgraph.update()
         
         self.report({'INFO'}, "E-frames cleared from " + str(bpy.data.scenes["Scene"].empty_objects.name))
         return {'FINISHED'}
