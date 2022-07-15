@@ -115,6 +115,8 @@ class Globals():
     final_pos = []
     placeable = True
     placeable_text = "Current: Placement"
+    
+    bound_lights = {}
 
 g = Globals()
 #instantiate global variables
@@ -129,6 +131,12 @@ bpy.app.handlers.load_post.append(load_handler)
 def filter_callback(self, object):
     if object.type == "EMPTY" and object.name in g.edit_names:
         return object.name in self.my_collection.objects.keys() 
+
+def filter_mesh(self, object):
+    return object.type == 'MESH'
+
+def filter_light(self, object):
+    return object.type == 'LIGHT'
 
 def update_individual_parameters(ob):
     for i in g.edit_indices:
@@ -238,6 +246,30 @@ def do_depsgraph_update(dummy):
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
 bpy.app.handlers.frame_change_post.append(do_depsgraph_update)
+
+class BindLight(Operator):
+    """Bind a light to an object- this light will affect edits for this object only"""
+    bl_idname = "wm.bind_light"
+    bl_label = "Bind light"
+    
+    def execute(self,context):
+        if bpy.data.scenes["Scene"].edit_object != None:
+            if bpy.data.scenes["Scene"].bound_light != None:
+                bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"] = str("" + bpy.data.scenes["Scene"].bound_light.name + "")
+            else:
+                self.report({'WARNING'}, "No light set")
+        else:
+            self.report({'WARNING'}, "No object set")
+        return{'FINISHED'}
+
+class UnBindLight(Operator):
+    """Un-bind a light from this object- e-frames for this object will be deleted"""
+    bl_idname = "wm.un_bind_light"
+    bl_label = "Un-bind light"
+    
+    def execute(self, context):
+        bpy.data.objects["Roundcube"]["bound_light"] = None
+        return {'FINISHED'}
 
 class AddEFrame(Operator):
     """Add e-frame, a relationship between light angle and edit position"""
@@ -464,7 +496,7 @@ class OBJECT_PT_EFramePanel(Panel):
         
 
         icons = ["HOOK", "TRASH", "UV_SYNC_SELECT", "META_ELLIPSOID", "SHADING_BBOX", "IMAGE_ALPHA", "FORCE_CHARGE", "UV", "DECORATE_KEYFRAME",
-        "SHARPCURVE","SHADING_BBOX","FORCE_CHARGE", "DRIVER_ROTATIONAL_DIFFERENCE", "FIXED_SIZE", "HOLDOUT_ON", "SYNTAX_OFF"]
+        "SHARPCURVE","SHADING_BBOX","FORCE_CHARGE", "DRIVER_ROTATIONAL_DIFFERENCE", "FIXED_SIZE", "HOLDOUT_ON", "SYNTAX_OFF", "LINKED", "UNLINKED"]
         
         layout = self.layout
         scene = context.scene
@@ -478,13 +510,32 @@ class OBJECT_PT_EFramePanel(Panel):
         
         col = layout.column()
         subrow = layout.row(align=True)
+        subrow.label(text="Object")
+        subrow.prop(scene, "edit_object")
+        
+        col = layout.column()
+        subrow = layout.row(align=True)
+        
+        if "bound_light" in bpy.data.scenes["Scene"].edit_object:
+            if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+                subrow.operator("wm.un_bind_light", icon = icons[16])
+            else:
+                subrow.operator("wm.bind_light", icon = icons[16])
+                subrow.prop(scene, "bound_light", icon = "LIGHT")
+        else:
+            subrow.operator("wm.bind_light", icon = icons[16])
+            subrow.prop(scene, "bound_light", icon = "LIGHT")
+        
+        layout.separator()
+        
+        subrow = layout.row(align=True)
         subrow.label(text="Edits collection")
         subrow.prop(scene, "my_collection")
         
         col.enabled = True if scene.my_collection else False
         subrow = layout.row(align=True)
         subrow.label(text="Active edit")
-        subrow.prop(scene, "empty_objects")
+        subrow.prop(scene, "empty_objects", icon = "EMPTY_DATA")
         
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
@@ -601,6 +652,8 @@ class OBJECT_PT_EFrameParamPanel(Panel):
 def register():
     register_class(OBJECT_PT_EFramePanel)
     register_class(OBJECT_PT_EFrameParamPanel)
+    register_class(BindLight)
+    register_class(UnBindLight)
     register_class(AddEFrame)
     register_class(ClearEFrame)
     register_class(ClearIndivEFrame)
@@ -622,6 +675,17 @@ def register():
         name="",
         type=bpy.types.Object,
         poll=filter_callback)
+        
+    bpy.types.Scene.edit_object = PointerProperty(
+        name="",
+        type=bpy.types.Object,
+        poll=filter_mesh)
+        
+    bpy.types.Scene.bound_light = PointerProperty(
+        name="",
+        type=bpy.types.Object,
+        poll=filter_light)
+        
     bpy.types.Scene.edit_strength = FloatProperty(name = "Edits Strength", max = 99, min = -99, default = 50)
     
     bpy.types.Scene.auto_select = BoolProperty(name = "Selected edit to active", default = True)
@@ -647,6 +711,8 @@ def unregister():
     from bpy.utils import unregister_class
     unregister_class(OBJECT_PT_EFramePanel)
     unregister_class(OBJECT_PT_EFrameParamPanel)
+    unregister_class(BindLight)
+    unregister_class(UnBindLight)
     unregister_class(AddEFrame)
     unregister_class(ClearEFrame)
     unregister_class(ClearIndivEFrame)
@@ -663,6 +729,8 @@ def unregister():
     
     del bpy.types.Scene.my_collection
     del bpy.types.Collection.empty_objects
+    del bpy.types.Scene.edit_object
+    del bpy.types.Scene.bound_light
     del bpy.types.Scene.edit_strength
     del bpy.types.Scene.auto_select
     del bpy.types.Scene.show_up
