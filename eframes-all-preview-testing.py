@@ -1,5 +1,6 @@
 import math
 
+object_array = ["Cube", "Cube", "Cube", "Cube", "Cube", "Cube", "Sphere", "Sphere"]
 list1 = ["a", "b", "a", "b", "c", "b", "b", "c"]
 holding_empty_pos = [[85, 85, 50], [32, 54, 81], [88, 62, 82], [81, 30, 12], [43, 66, 72], [66, 6, 32], [13, 50, 72], [61, 20, 89]]
 holding_light_rot = [[143, 2, 150], [49, 71, 166], [44, 136, 74], [172, 77, 11], [66, 102, 53], [36, 161, 62], [43, 69, 54], [42, 69, 97]]
@@ -41,6 +42,7 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
 
 c = convert_full_eframes_array_to_edit_seperated_array(list1, holding_light_rot, holding_empty_pos, potentials)
 all_empty_pos, all_light_rot, used_potentials = c[0], c[1], c[2]
+print(all_empty_pos, all_light_rot, used_potentials)
 
 for edit in used_potentials:
     

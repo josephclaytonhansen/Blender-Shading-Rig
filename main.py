@@ -119,6 +119,19 @@ class Globals():
     placeable_text = "Current: Placement"
     
     bound_lights = {}
+    
+    #for depsgraph filtering- if a light isn't bound, there's no point in trying to run the do_depsgraph_update (it doesn't work) 
+    light_is_bound = False
+    
+    #adding the all_ dicts, for multi-object support
+    all_edit_names = {}
+    all_light_rot_arrays = {}
+    all_empty_pos_arrays = {}
+    all_eframe_edit_names = {}
+    
+    run_c = True
+    c = None
+        
 
 g = Globals()
 #instantiate global variables
@@ -158,101 +171,113 @@ def do_depsgraph_update(dummy):
     bpy.data.node_groups["Shading"].nodes["Mix"].inputs[0].default_value = bpy.data.scenes["Scene"].direction
     bpy.data.node_groups["Setup"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].edit_strength
     
-    #set active light
-    try:
-        g.active_light = bpy.data.objects[bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]]
-        g.active_light_name = bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]
-    except Exception as e:
+    #set active light and check if light is bound
+    
+    if "bound_light" in bpy.data.scenes["Scene"].edit_object:
+        if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+            g.light_is_bound = True
+            g.active_light = bpy.data.objects[bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]]
+            g.active_light_name = bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]
+        else:
+            g.light_is_bound = False
+            g.active_light = None
+            g.active_light_name = ""
+    else:
+        g.light_is_bound = False
         g.active_light = None
         g.active_light_name = ""
-        print(e)
+        
+    #depsgraph filtering- this should run only when valid
+    if g.light_is_bound:
     
-    #If an edit is selected, the active edit should be that edit
-    #This clears with a BUG
-    
-    #BUG: If the field is empty, selection doesn't work 
-    
-    selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
-    if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
-        if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
-            update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
-        bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
-    
-    collection = bpy.data.scenes["Scene"].my_collection
-    #when the depsgraph updates, get the active light_rotation 
-    #represented as a "point" for ease of distance calculations.
+        #If an edit is selected, the active edit should be that edit
+        #This clears with a BUG
+        
+        #BUG: If the field is empty, selection doesn't work 
+        
+        selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
+        if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
+            if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
+                update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
+            bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
+        
+        collection = bpy.data.scenes["Scene"].my_collection
+        #when the depsgraph updates, get the active light_rotation 
+        #represented as a "point" for ease of distance calculations.
 
-    g.active_point = [
-        round(g.active_light.rotation_euler[0],2),
-        round(g.active_light.rotation_euler[1],2),
-        round(g.active_light.rotation_euler[2],2)
-        ]  
+        g.active_point = [
+            round(g.active_light.rotation_euler[0],2),
+            round(g.active_light.rotation_euler[1],2),
+            round(g.active_light.rotation_euler[2],2)
+            ]  
 
-    #Preview
-    
-    i = -1
-    
-    #experimental- get WDMs
-    c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
-    
-    all_light_rot = c[1]
-    all_empty_pos = c[0]
-    edit_list = c[2]
-    
-    for edit in edit_list:
-    
-        l = len(all_light_rot[edit])
-        distances = [0] * l
-        inverse_distances = [0] * l
-        multiplied_distances = [0] * l
+        #Preview
         
         i = -1
         
-        for point in all_light_rot[edit]:
-            i += 1
-
-            distances[i] = distance(g.active_point, point)
-            inverse_distances[i] = round((1/distances[i]),6)
+        #experimental- get WDMs
+        if g.run_c:
+            g.c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
+            g.run_c = False
         
-        y = -1
-        for point in all_light_rot[edit]:
-            y += 1
-            total_inverse_distances = sum(inverse_distances)
-            working_multiplier = 100 / total_inverse_distances
-            
-            multiplied_distances[y] = inverse_distances[y] * working_multiplier
-            
-            if g.debug:
-                print("\n", edit)
-                print(multiplied_distances)
-            
-        #WDM (everything above this) clears
+        all_light_rot = g,c[1]
+        all_empty_pos = g.c[0]
+        edit_list = g.c[2]
         
-        #LERP
-        final_pos = [0,0,0]
+        for edit in edit_list:
+        
+            l = len(all_light_rot[edit])
+            distances = [0] * l
+            inverse_distances = [0] * l
+            multiplied_distances = [0] * l
+            
+            i = -1
+            
+            for point in all_light_rot[edit]:
+                i += 1
 
-        entry_index = -1
-
-        for entry in all_empty_pos[edit]:
-            entry_index += 1
-            axis_index = -1
-
-            for axis in entry:
-                axis_index += 1
-                final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
+                distances[i] = distance(g.active_point, point)
+                inverse_distances[i] = round((1/distances[i]),6)
+            
+            y = -1
+            for point in all_light_rot[edit]:
+                y += 1
+                total_inverse_distances = sum(inverse_distances)
+                working_multiplier = 100 / total_inverse_distances
                 
-        g.final_pos = final_pos
+                multiplied_distances[y] = inverse_distances[y] * working_multiplier
+                
+                if g.debug:
+                    print("\n", edit)
+                    print(multiplied_distances)
+                
+            #WDM (everything above this) clears
+            
+            #LERP
+            final_pos = [0,0,0]
 
-        if g.debug:
-            print("Placeable: ", g.placeable, "\nFinal pos: ", g.final_pos)
-        
-        if not g.placeable and g.final_pos != [0,0,0]:
-            bpy.data.objects[edit].location = g.final_pos
-        elif g.placeable and g.final_pos != [0,0,0]:
-            if bpy.data.scenes["Scene"].empty_objects.name != edit:
+            entry_index = -1
+
+            for entry in all_empty_pos[edit]:
+                entry_index += 1
+                axis_index = -1
+
+                for axis in entry:
+                    axis_index += 1
+                    final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
+                    
+            g.final_pos = final_pos
+
+            if g.debug:
+                print("Placeable: ", g.placeable, "\nFinal pos: ", g.final_pos)
+            
+            if not g.placeable and g.final_pos != [0,0,0]:
                 bpy.data.objects[edit].location = g.final_pos
-        #end LERP
-        #LERP clears
+            elif g.placeable and g.final_pos != [0,0,0]:
+                if bpy.data.scenes["Scene"].empty_objects.name != edit:
+                    bpy.data.objects[edit].location = g.final_pos
+            #end LERP
+            #LERP clears
         
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
@@ -324,11 +349,22 @@ class AddEFrame(Operator):
         #Same for the inverses
         
         #save e-frames to e-frame light
-        #hardcoded light
+
         bpy.data.objects[g.active_light_name]["light_rot"] = str(json.loads(str(g.light_rot_array)))
         bpy.data.objects[g.active_light_name]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
         bpy.data.objects[g.active_light_name]["edit_names"] = str(g.eframe_edit_names)
         bpy.context.view_layer.depsgraph.update()
+        
+        g.all_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.edit_names
+        g.all_light_rot_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.light_rot_array
+        g.all_empty_pos_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.empty_pos_array
+        g.all_eframe_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.eframe_edit_names
+        
+        #we're storing the all_ dicts locally- they're not saved in custom properties, and we're not doing anything with them (yet)
+        print(g.all_edit_names, g.all_light_rot_arrays, g.all_empty_pos_arrays, g.all_eframe_edit_names)
+        
+        g.run_c = True
+        
         return {'FINISHED'}
 
 class SetSmoothness(Operator):
@@ -431,7 +467,7 @@ class SetName(Operator):
 class ClearEFrame(Operator):
     """Clear all relationships between light angle and empty position"""
     bl_idname = "wm.no_eframe"
-    bl_label = "Clear all e-frames"
+    bl_label = "Clear all"
     def execute(self, context):
         count = len(g.light_rot_array)
         g.light_rot_array = []
@@ -442,12 +478,13 @@ class ClearEFrame(Operator):
         bpy.data.objects["Area"]["edit_names"] = str(g.eframe_edit_names)
         bpy.context.view_layer.depsgraph.update()
         self.report({'INFO'}, str(count) + " E-Frames cleared")
+        g.run_c = True
         return {'FINISHED'}
 
 class ClearIndivEFrame(Operator):
     """Clear e-frames from the active edit"""
     bl_idname = "wm.del_eframe"
-    bl_label = "Clear e-frames from this edit"
+    bl_label = "Clear active"
     def execute(self, context):
         if g.debug:
             print(g.eframe_edit_names)
@@ -477,6 +514,7 @@ class ClearIndivEFrame(Operator):
         bpy.context.view_layer.depsgraph.update()
         
         self.report({'INFO'}, "E-frames cleared from " + str(bpy.data.scenes["Scene"].empty_objects.name))
+        g.run_c = True
         return {'FINISHED'}
 
 class TogglePreview(Operator):
@@ -523,24 +561,25 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
         
         layout.separator()
-        
-        col = layout.column()
-        subrow = layout.row(align=True)
-        subrow.label(text="Object")
-        subrow.prop(scene, "edit_object")
-        
-        col = layout.column()
+
         subrow = layout.row(align=True)
         
         if "bound_light" in bpy.data.scenes["Scene"].edit_object:
             if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
                 subrow.operator("wm.un_bind_light", icon = icons[16])
+                subrow.prop(scene, "edit_object")
             else:
                 subrow.operator("wm.bind_light", icon = icons[16])
                 subrow.prop(scene, "bound_light", icon = "LIGHT")
+                subrow = layout.row(align=True)
+                subrow.label(text="Object")
+                subrow.prop(scene, "edit_object")
         else:
             subrow.operator("wm.bind_light", icon = icons[16])
             subrow.prop(scene, "bound_light", icon = "LIGHT")
+            subrow = layout.row(align=True)
+            subrow.label(text="Object")
+            subrow.prop(scene, "edit_object")
         
         layout.separator()
         
@@ -548,21 +587,20 @@ class OBJECT_PT_EFramePanel(Panel):
         subrow.label(text="Edits collection")
         subrow.prop(scene, "my_collection")
         
-        col.enabled = True if scene.my_collection else False
-        subrow = layout.row(align=True)
-        subrow.label(text="Active edit")
-        subrow.prop(scene, "empty_objects", icon = "EMPTY_DATA")
-        
+        if scene.my_collection:
+            subrow = layout.row(align=True)
+            subrow.label(text="Active edit")
+            subrow.prop(scene, "empty_objects", icon = "EMPTY_DATA")
+            
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
         
         layout.separator()
         
         subrow = layout.row(align=True)
-        subrow.operator("wm.del_eframe", icon = icons[1])
-        
-        subrow = layout.row(align=True)
-        subrow.operator("wm.no_eframe", icon = icons[1])
+        subrow.label(icon=icons[1])
+        subrow.operator("wm.del_eframe")    
+        subrow.operator("wm.no_eframe")
         
         
 class OBJECT_PT_EFrameParamPanel(Panel):
