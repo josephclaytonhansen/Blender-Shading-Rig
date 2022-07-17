@@ -124,10 +124,8 @@ class Globals():
     light_is_bound = False
     
     #adding the all_ dicts, for multi-object support
-    all_edit_names = {}
     all_light_rot_arrays = {}
     all_empty_pos_arrays = {}
-    all_eframe_edit_names = {}
     
     run_c = True
     c = None
@@ -216,6 +214,8 @@ def do_depsgraph_update(dummy):
         i = -1
         
         #experimental- get WDMs
+        #we only need to filter the arrays if something has changed- otherwise just use the last filtering results.
+        #Do NOT screw around with this, unless you want your FPS to drop by 15-20 or so. 
         if g.run_c:
             g.c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
             g.run_c = False
