@@ -1,10 +1,11 @@
 import math, json
 
 object_array = ["Sphere", "Cube", "Cube", "Cube", "Cube", "Cube", "Sphere", "Sphere"]
-list1 = ["EditC", "EditB", "EditA", "EditA", "EditC", "EditB", "EditB", "EditC"]
+list1 = ["SphereEditC", "CubeEditB", "CubeEditA", "CubeEditA", "CubeEditC", "CubeEditB", "SphereEditB", "SphereEditC"]
 holding_empty_pos = [[85, 85, 50], [32, 54, 81], [88, 62, 82], [81, 30, 12], [43, 66, 72], [66, 6, 32], [13, 50, 72], [61, 20, 89]]
 holding_light_rot = [[143, 2, 150], [49, 71, 166], [44, 136, 74], [172, 77, 11], [66, 102, 53], [36, 161, 62], [43, 69, 54], [42, 69, 97]]
-potentials = ["EditA", "EditB", "EditC", "EditD", "EditE", "EditF", "EditG", "EditH"]
+potentials = ["CubeEditA", "CubeEditB", "CubeEditC", "CubeEditD", "CubeEditE", "CubeEditF", "CubeEditG", "CubeEditH",
+              "SphereEditA", "SphereEditB", "SphereEditC", "SphereEditD", "SphereEditE", "SphereEditF", "SphereEditG", "SphereEditH"]
 
 active_point = [75, 151, 55]
 
@@ -62,5 +63,4 @@ def convert_full_eframes_array_to_edit_seperated_array(edits, light_rot, eframes
 
 c = convert_full_eframes_array_to_edit_seperated_array(list1, holding_light_rot, holding_empty_pos, potentials, g.all_objects, object_array)
 g.all_empty_pos_arrays, g.all_light_rot_arrays, used_potentials = c[0], c[1], c[2]
-
 
