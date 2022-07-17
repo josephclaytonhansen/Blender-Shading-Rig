@@ -220,7 +220,7 @@ def do_depsgraph_update(dummy):
             g.c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
             g.run_c = False
         
-        all_light_rot = g,c[1]
+        all_light_rot = g.c[1]
         all_empty_pos = g.c[0]
         edit_list = g.c[2]
         
