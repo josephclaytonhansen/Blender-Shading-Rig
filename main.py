@@ -703,24 +703,17 @@ class OBJECT_PT_EFrameParamPanel(Panel):
                 subrow.operator("wm.set_edit_name")
         
 
-def register():
-    register_class(OBJECT_PT_EFramePanel)
-    register_class(OBJECT_PT_EFrameParamPanel)
-    register_class(BindLight)
-    register_class(UnBindLight)
-    register_class(AddEFrame)
-    register_class(ClearEFrame)
-    register_class(ClearIndivEFrame)
-    register_class(TogglePreview)
-    register_class(SetSmoothness)
-    register_class(SetScale)
-    register_class(SetName)
-    register_class(SetStretch)
-    register_class(SetRotate)
-    register_class(SetMask)
-    register_class(SetPinch)
-    register_class(SetInfluence)
+classes = [
+    OBJECT_PT_EFramePanel, OBJECT_PT_EFrameParamPanel, BindLight,
+    UnBindLight, AddEFrame, ClearEFrame, ClearIndivEFrame,
+    TogglePreview, SetSmoothness, SetScale, SetName,
+    SetStretch, SetRotate, SetMask, SetPinch, SetInfluence
+    ]
 
+
+def register():
+    for cl in classes:
+        register_class(cl)
     
     bpy.types.Scene.my_collection = PointerProperty(
         name="",
@@ -763,40 +756,16 @@ def register():
 
 def unregister():
     from bpy.utils import unregister_class
-    unregister_class(OBJECT_PT_EFramePanel)
-    unregister_class(OBJECT_PT_EFrameParamPanel)
-    unregister_class(BindLight)
-    unregister_class(UnBindLight)
-    unregister_class(AddEFrame)
-    unregister_class(ClearEFrame)
-    unregister_class(ClearIndivEFrame)
-    unregister_class(TogglePreview)
-    unregister_class(SetSmoothness)
-    unregister_class(SetScale)
-    unregister_class(SetName)
-    unregister_class(SetStretch)
-    unregister_class(SetRotate)
-    unregister_class(SetMask)
-    unregister_class(SetPinch)
-    unregister_class(SetInfluence)
-    unregister_class(eframesPreferences)
+    for cl in classes:
+        unregister_class(cl)
     
-    del bpy.types.Scene.my_collection
-    del bpy.types.Collection.empty_objects
-    del bpy.types.Scene.edit_object
-    del bpy.types.Scene.bound_light
-    del bpy.types.Scene.edit_strength
-    del bpy.types.Scene.auto_select
-    del bpy.types.Scene.show_up
-    del bpy.types.Scene.sharpness
-    del bpy.types.Scene.mask
-    del bpy.types.Scene.escale
-    del bpy.types.Scene.ename
-    del bpy.types.Scene.estretch
-    del bpy.types.Scene.erotate
-    del bpy.types.Scene.epinch
-    del bpy.types.Scene.advanced
-    del bpy.types.Scene.edirection
+    for i in [bpy.types.Scene.my_collection, bpy.types.Collection.empty_objects, bpy.types.Scene.edit_object,
+              bpy.types.Scene.bound_light, bpy.types.Scene.edit_strength, bpy.types.Scene.auto_select,
+              bpy.types.Scene.show_up, bpy.types.Scene.sharpness, bpy.types.Scene.mask,
+              bpy.types.Scene.escale, bpy.types.Scene.ename, bpy.types.Scene.estretch,
+              bpy.types.Scene.erotate, bpy.types.Scene.epinch, bpy.types.Scene.advanced,
+              bpy.types.Scene.edirection]:
+        del i
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(do_depsgraph_update)
