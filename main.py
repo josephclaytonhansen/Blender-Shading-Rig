@@ -163,8 +163,19 @@ def update_individual_parameters(ob):
                 bpy.data.scenes["Scene"].mask = bpy.data.node_groups[g.rotate_groups[i]].nodes["ColorRamp"].color_ramp.elements[1].position * 10
                 bpy.data.scenes["Scene"].epinch = bpy.data.node_groups[g.rotate_groups[i]].nodes["Value"].outputs[0].default_value
                 bpy.data.scenes["Scene"].einfluence = bpy.data.node_groups["Shading"].nodes[g.influence_groups[i]].inputs[2].default_value
+
+def update_active_object(self,context):
+    if bpy.data.scenes["Scene"].edit_object != None and "bound_light" in bpy.data.scenes["Scene"].edit_object and bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+        bpy.data.scenes["Scene"].bound_light = bpy.data.scenes["Scene"].edit_object["bound_light"]
+    else:
+        bpy.data.scenes["Scene"].bound_light = None
                 
 def do_depsgraph_update(dummy):
+    
+    if bpy.data.scenes["Scene"].auto_select_object:
+            if bpy.context.active_object.type == "MESH" and bpy.data.scenes["Scene"].edit_object != bpy.context.active_object:
+                bpy.data.scenes["Scene"].edit_object = bpy.context.active_object
+            
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[2].default_value = bpy.data.scenes["Scene"].scale
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[3].default_value = bpy.data.scenes["Scene"].coords
     bpy.data.node_groups["EDIT_SHADING"].nodes["Group.011"].inputs[4].default_value = bpy.data.scenes["Scene"].threshold
@@ -172,114 +183,111 @@ def do_depsgraph_update(dummy):
     bpy.data.node_groups["Setup"].nodes["Value"].outputs[0].default_value = bpy.data.scenes["Scene"].edit_strength
     
     #set active light and check if light is bound
-    
-    if "bound_light" in bpy.data.scenes["Scene"].edit_object:
-        if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
-            g.light_is_bound = True
-            g.active_light = bpy.data.objects[bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]]
-            g.active_light_name = bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]
-        else:
-            g.light_is_bound = False
-            g.active_light = None
-            g.active_light_name = ""
+    if bpy.data.scenes["Scene"].edit_object != None and "bound_light" in bpy.data.scenes["Scene"].edit_object and bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+        g.light_is_bound = True
+        g.active_light = bpy.data.objects[bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]]
+        g.active_light_name = bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name]["bound_light"]
     else:
         g.light_is_bound = False
         g.active_light = None
         g.active_light_name = ""
         
     #depsgraph filtering- this should run only when valid
-    if g.light_is_bound:
+    #If an edit is selected, the active edit should be that edit
+    #This clears with a BUG
     
-        #If an edit is selected, the active edit should be that edit
-        #This clears with a BUG
-        
-        #BUG: If the field is empty, selection doesn't work 
-        
+    #BUG: If the field is empty, selection doesn't work 
+    
+    if bpy.data.scenes["Scene"].auto_select:
         selected = "EMPTY" in [obj.type for obj in bpy.context.selected_objects]
-        if bpy.context.active_object.type == "EMPTY" and g.placeable and bpy.data.scenes["Scene"].auto_select and selected:
+        if bpy.context.active_object.type == "EMPTY" and g.placeable and selected:
             if bpy.data.scenes["Scene"].empty_objects != bpy.context.active_object:
                 update_individual_parameters(bpy.data.scenes["Scene"].empty_objects)
             bpy.data.scenes["Scene"].empty_objects = bpy.context.active_object
-        
-        collection = bpy.data.scenes["Scene"].my_collection
-        #when the depsgraph updates, get the active light_rotation 
-        #represented as a "point" for ease of distance calculations.
+    
 
+    collection = bpy.data.scenes["Scene"].my_collection
+    #when the depsgraph updates, get the active light_rotation 
+    #represented as a "point" for ease of distance calculations.
+    
+    if g.active_light != None:
+        #This is completely wrong!!!! Currently this is locking things to one light, which means only one object will preview.
+        #In future, remove this if altogether and instead do all object preview
         g.active_point = [
             round(g.active_light.rotation_euler[0],2),
             round(g.active_light.rotation_euler[1],2),
             round(g.active_light.rotation_euler[2],2)
             ]  
 
-        #Preview
+    #Preview
+    
+    i = -1
+    
+    #experimental- get WDMs
+    #we only need to filter the arrays if something has changed- otherwise just use the last filtering results.
+    #Do NOT screw around with this, unless you want your FPS to drop by 15-20 or so. 
+    if g.run_c:
+        g.c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
+        g.run_c = False
+    
+    all_light_rot = g.c[1]
+    all_empty_pos = g.c[0]
+    edit_list = g.c[2]
+    
+    for edit in edit_list:
+    
+        l = len(all_light_rot[edit])
+        distances = [0] * l
+        inverse_distances = [0] * l
+        multiplied_distances = [0] * l
         
         i = -1
         
-        #experimental- get WDMs
-        #we only need to filter the arrays if something has changed- otherwise just use the last filtering results.
-        #Do NOT screw around with this, unless you want your FPS to drop by 15-20 or so. 
-        if g.run_c:
-            g.c = convert_full_eframes_array_to_edit_seperated_array(g.eframe_edit_names, g.light_rot_array, g.empty_pos_array, g.edit_names)
-            g.run_c = False
+        for point in all_light_rot[edit]:
+            i += 1
+
+            distances[i] = distance(g.active_point, point)
+            inverse_distances[i] = round((1/distances[i]),6)
         
-        all_light_rot = g.c[1]
-        all_empty_pos = g.c[0]
-        edit_list = g.c[2]
-        
-        for edit in edit_list:
-        
-            l = len(all_light_rot[edit])
-            distances = [0] * l
-            inverse_distances = [0] * l
-            multiplied_distances = [0] * l
+        y = -1
+        for point in all_light_rot[edit]:
+            y += 1
+            total_inverse_distances = sum(inverse_distances)
+            working_multiplier = 100 / total_inverse_distances
             
-            i = -1
+            multiplied_distances[y] = inverse_distances[y] * working_multiplier
             
-            for point in all_light_rot[edit]:
-                i += 1
-
-                distances[i] = distance(g.active_point, point)
-                inverse_distances[i] = round((1/distances[i]),6)
-            
-            y = -1
-            for point in all_light_rot[edit]:
-                y += 1
-                total_inverse_distances = sum(inverse_distances)
-                working_multiplier = 100 / total_inverse_distances
-                
-                multiplied_distances[y] = inverse_distances[y] * working_multiplier
-                
-                if g.debug:
-                    print("\n", edit)
-                    print(multiplied_distances)
-                
-            #WDM (everything above this) clears
-            
-            #LERP
-            final_pos = [0,0,0]
-
-            entry_index = -1
-
-            for entry in all_empty_pos[edit]:
-                entry_index += 1
-                axis_index = -1
-
-                for axis in entry:
-                    axis_index += 1
-                    final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
-                    
-            g.final_pos = final_pos
-
             if g.debug:
-                print("Placeable: ", g.placeable, "\nFinal pos: ", g.final_pos)
+                print("\n", edit)
+                print(multiplied_distances)
             
-            if not g.placeable and g.final_pos != [0,0,0]:
+        #WDM (everything above this) clears
+        
+        #LERP
+        final_pos = [0,0,0]
+
+        entry_index = -1
+
+        for entry in all_empty_pos[edit]:
+            entry_index += 1
+            axis_index = -1
+
+            for axis in entry:
+                axis_index += 1
+                final_pos[axis_index] += round((round((multiplied_distances[entry_index] /100),2) * axis),6)
+                
+        g.final_pos = final_pos
+
+        if g.debug:
+            print("Placeable: ", g.placeable, "\nFinal pos: ", g.final_pos)
+        
+        if not g.placeable and g.final_pos != [0,0,0]:
+            bpy.data.objects[edit].location = g.final_pos
+        elif g.placeable and g.final_pos != [0,0,0]:
+            if bpy.data.scenes["Scene"].empty_objects.name != edit:
                 bpy.data.objects[edit].location = g.final_pos
-            elif g.placeable and g.final_pos != [0,0,0]:
-                if bpy.data.scenes["Scene"].empty_objects.name != edit:
-                    bpy.data.objects[edit].location = g.final_pos
-            #end LERP
-            #LERP clears
+        #end LERP
+        #LERP clears
         
 
 bpy.app.handlers.depsgraph_update_post.append(do_depsgraph_update)   
@@ -608,6 +616,8 @@ class OBJECT_PT_EFramePanel(Panel):
             
         subrow = layout.row(align=True)
         subrow.prop(scene, "auto_select")
+        subrow = layout.row(align=True)
+        subrow.prop(scene, "auto_select_object")
         
         layout.separator()
         
@@ -742,7 +752,8 @@ def register():
     bpy.types.Scene.edit_object = PointerProperty(
         name="",
         type=bpy.types.Object,
-        poll=filter_mesh)
+        poll=filter_mesh,
+        update=update_active_object)
         
     bpy.types.Scene.bound_light = PointerProperty(
         name="",
@@ -752,6 +763,7 @@ def register():
     bpy.types.Scene.edit_strength = FloatProperty(name = "Edits Strength", max = 99, min = -99, default = 50)
     
     bpy.types.Scene.auto_select = BoolProperty(name = "Selected edit to active", default = True)
+    bpy.types.Scene.auto_select_object = BoolProperty(name = "Selected object to active", default = False)
     
     bpy.types.Scene.show_up = BoolProperty(name = "Show universal parameters", default = True)
     bpy.types.Scene.advanced = BoolProperty(name = "Show advanced parameters", default = True)
@@ -780,7 +792,7 @@ def unregister():
               bpy.types.Scene.show_up, bpy.types.Scene.sharpness, bpy.types.Scene.mask,
               bpy.types.Scene.escale, bpy.types.Scene.ename, bpy.types.Scene.estretch,
               bpy.types.Scene.erotate, bpy.types.Scene.epinch, bpy.types.Scene.advanced,
-              bpy.types.Scene.edirection]:
+              bpy.types.Scene.edirection, bpy.types.Scene.auto_select_object]:
         del i
 
     if do_depsgraph_update in bpy.app.handlers.depsgraph_update_post:
