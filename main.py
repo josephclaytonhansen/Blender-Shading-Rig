@@ -305,7 +305,7 @@ class UnBindLight(Operator):
     bl_label = "Un-bind light"
     
     def execute(self, context):
-        bpy.data.objects["Roundcube"]["bound_light"] = None
+        bbpy.data.scenes["Scene"].edit_object["bound_light"] = None
         bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name].data.update()
         return {'FINISHED'}
 
