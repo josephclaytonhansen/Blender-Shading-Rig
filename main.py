@@ -368,8 +368,6 @@ class AddEFrame(Operator):
                 print(g.all_edit_names, g.all_light_rot_arrays, g.all_empty_pos_arrays, g.all_eframe_edit_names)
                 
                 g.run_c = True
-            else:
-                self.report({"WARNING"}, "Light not bound")
         
         return {'FINISHED'}
 
@@ -562,6 +560,17 @@ class OBJECT_PT_EFramePanel(Panel):
         scene = context.scene
         subcolumn = layout.column()
         subrow = layout.row(align=True)
+        if bpy.data.scenes["Scene"].edit_object != None:
+            if "bound_light" in bpy.data.scenes["Scene"].edit_object:
+                if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+                    en = True
+                else: 
+                    en = False
+            else:
+                en = False
+        else: 
+            en = False
+        subrow.enabled = en
         subrow.operator("wm.add_eframe")
         subrow = layout.row(align=True)
         subrow.operator("wm.toggle", icon = icons[2], depress = not g.placeable, text = g.placeable_text)
@@ -570,19 +579,18 @@ class OBJECT_PT_EFramePanel(Panel):
 
         subrow = layout.row(align=True)
         
-        if "bound_light" in bpy.data.scenes["Scene"].edit_object:
-            if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+        if bpy.data.scenes["Scene"].edit_object != None:
+            if en:
                 subrow.operator("wm.un_bind_light", icon = icons[16])
                 subrow.prop(scene, "edit_object")
             else:
                 subrow.operator("wm.bind_light", icon = icons[16])
                 subrow.prop(scene, "bound_light", icon = "LIGHT")
+                
                 subrow = layout.row(align=True)
                 subrow.label(text="Object")
                 subrow.prop(scene, "edit_object")
         else:
-            subrow.operator("wm.bind_light", icon = icons[16])
-            subrow.prop(scene, "bound_light", icon = "LIGHT")
             subrow = layout.row(align=True)
             subrow.label(text="Object")
             subrow.prop(scene, "edit_object")
@@ -605,6 +613,8 @@ class OBJECT_PT_EFramePanel(Panel):
         
         subrow = layout.row(align=True)
         subrow.label(icon=icons[1])
+        if g.light_rot_array == []:
+            subrow.enabled = False
         subrow.operator("wm.del_eframe")    
         subrow.operator("wm.no_eframe")
         
