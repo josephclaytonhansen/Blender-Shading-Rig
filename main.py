@@ -126,6 +126,8 @@ class Globals():
     #adding the all_ dicts, for multi-object support
     all_light_rot_arrays = {}
     all_empty_pos_arrays = {}
+    all_edit_names = {}
+    all_eframe_edit_names = {}
     
     run_c = True
     c = None
@@ -305,7 +307,7 @@ class UnBindLight(Operator):
     bl_label = "Un-bind light"
     
     def execute(self, context):
-        bbpy.data.scenes["Scene"].edit_object["bound_light"] = None
+        bpy.data.scenes["Scene"].edit_object["bound_light"] = None
         bpy.data.objects[bpy.data.scenes["Scene"].edit_object.name].data.update()
         return {'FINISHED'}
 
@@ -368,8 +370,6 @@ class AddEFrame(Operator):
                 g.run_c = True
             else:
                 self.report({"WARNING"}, "Light not bound")
-         else:
-            self.report({"WARNING"}, "Light not bound")
         
         return {'FINISHED'}
 
