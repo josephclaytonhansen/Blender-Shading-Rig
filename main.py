@@ -315,55 +315,61 @@ class AddEFrame(Operator):
     bl_label = "Add e-frame"
 
     def execute(self, context):
-        
-        #experimental
-        g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
-        
-        g.light_rot_array.append([
+        if "bound_light" in bpy.data.scenes["Scene"].edit_object:
+            if bpy.data.scenes["Scene"].edit_object["bound_light"] != None:
+                #experimental
+                current_light = bpy.data.objects[bpy.data.scenes["Scene"].edit_object["bound_light"]]
+                g.eframe_edit_names.append(bpy.data.scenes["Scene"].empty_objects.name)
+                
+                g.light_rot_array.append([
 
-        round(bpy.data.objects[g.active_light_name].rotation_euler[0],6),
-        round(bpy.data.objects[g.active_light_name].rotation_euler[1],6),
-        round(bpy.data.objects[g.active_light_name].rotation_euler[2],6)
-        ])
-        
-        if g.debug:
-        
-            print(bpy.data.scenes["Scene"].empty_objects.name)
-            print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name])
-            print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location)
-        
-        g.empty_pos_array.append([
-        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[0],4),
-        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[1],4),
-        round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[2],4)
-        ])
-        #by adding to the end of both arrays, we know that 
-        #corresponding rotation and position values will share
-        #an index between arrays
-        g.distances.append(0)
-        g.inverse_distances.append(0)
-        g.multiplied_distances.append(0)
-        #the distances array also needs a new entry. Since the
-        #distances are dynamically calculated, we can leave
-        #this blank for now. 
-        #Same for the inverses
-        
-        #save e-frames to e-frame light
+                round(current_light.rotation_euler[0],6),
+                round(current_light.rotation_euler[1],6),
+                round(current_light.rotation_euler[2],6)
+                ])
+                
+                if g.debug:
+                
+                    print(bpy.data.scenes["Scene"].empty_objects.name)
+                    print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name])
+                    print(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location)
+                
+                g.empty_pos_array.append([
+                round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[0],4),
+                round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[1],4),
+                round(bpy.data.objects[bpy.data.scenes["Scene"].empty_objects.name].location[2],4)
+                ])
+                #by adding to the end of both arrays, we know that 
+                #corresponding rotation and position values will share
+                #an index between arrays
+                g.distances.append(0)
+                g.inverse_distances.append(0)
+                g.multiplied_distances.append(0)
+                #the distances array also needs a new entry. Since the
+                #distances are dynamically calculated, we can leave
+                #this blank for now. 
+                #Same for the inverses
+                
+                #save e-frames to e-frame light
 
-        bpy.data.objects[g.active_light_name]["light_rot"] = str(json.loads(str(g.light_rot_array)))
-        bpy.data.objects[g.active_light_name]["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
-        bpy.data.objects[g.active_light_name]["edit_names"] = str(g.eframe_edit_names)
-        bpy.context.view_layer.depsgraph.update()
-        
-        g.all_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.edit_names
-        g.all_light_rot_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.light_rot_array
-        g.all_empty_pos_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.empty_pos_array
-        g.all_eframe_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.eframe_edit_names
-        
-        #we're storing the all_ dicts locally- they're not saved in custom properties, and we're not doing anything with them (yet)
-        print(g.all_edit_names, g.all_light_rot_arrays, g.all_empty_pos_arrays, g.all_eframe_edit_names)
-        
-        g.run_c = True
+                current_light["light_rot"] = str(json.loads(str(g.light_rot_array)))
+                current_light["empty_pos"] = str(json.loads(str(g.empty_pos_array)))
+                current_light["edit_names"] = str(g.eframe_edit_names)
+                bpy.context.view_layer.depsgraph.update()
+                
+                g.all_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.edit_names
+                g.all_light_rot_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.light_rot_array
+                g.all_empty_pos_arrays[bpy.data.scenes["Scene"].edit_object.name] = g.empty_pos_array
+                g.all_eframe_edit_names[bpy.data.scenes["Scene"].edit_object.name] = g.eframe_edit_names
+                
+                #we're storing the all_ dicts locally- they're not saved in custom properties, and we're not doing anything with them (yet)
+                print(g.all_edit_names, g.all_light_rot_arrays, g.all_empty_pos_arrays, g.all_eframe_edit_names)
+                
+                g.run_c = True
+            else:
+                self.report({"WARNING"}, "Light not bound")
+         else:
+            self.report({"WARNING"}, "Light not bound")
         
         return {'FINISHED'}
 
